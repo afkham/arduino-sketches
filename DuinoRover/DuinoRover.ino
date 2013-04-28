@@ -1,7 +1,7 @@
 /*
 Adafruit Arduino - Lesson 15. Bi-directional Motor
  */
-int enablePin = 6;
+
 
 int in1Pin = 2;
 int in2Pin = 3;
@@ -9,43 +9,95 @@ int in2Pin = 3;
 int in3Pin = 4;
 int in4Pin = 5;
 
-int switchPin = 7;
-int potPin = 0;
+int enable1Pin = 6;
+int enable2Pin = 9;
+
 void setup()
 {
+  Serial.begin(9600);
+  Serial.println("Setup...");
   pinMode(in1Pin, OUTPUT);
   pinMode(in2Pin, OUTPUT);
   pinMode(in3Pin, OUTPUT);
   pinMode(in4Pin, OUTPUT);
- // pinMode(enablePin, OUTPUT);
- // pinMode(switchPin, INPUT_PULLUP);
+  pinMode(enable1Pin, OUTPUT);
+  pinMode(enable2Pin, OUTPUT);
+  // pinMode(switchPin, INPUT_PULLUP);
 }
 void loop()
 {
-  //int speed = analogRead(potPin) / 4;
-  //boolean reverse = digitalRead(switchPin);
-  setMotor1(1023, true);
-  setMotor2(1023, true);
-  delay(2000);
-  setMotor1(1023, false);
-  setMotor2(1023, false);
-  delay(2000);
-  setMotor1(0, false);
-  setMotor2(0, false);
-  delay(2000);
+  Serial.println("Running...");
+  reverse();
+  halt();
+  forward();
+  halt();
+  turnRight();
+  halt();
+  turnLeft();
+  halt();
+  forward();
+  
+}
+
+void forward(){
+  Serial.println("Forward");
+  setMotor1(255, true);
+  setMotor2(255, true);
+  delay(5000);
+}
+
+
+void halt(){
+  stopMotor1();
+  stopMotor2();
+  delay(500);
+}
+
+void reverse(){
+  Serial.println("Reverse");
+  setMotor1(255, false);
+  setMotor2(255, false);
+  delay(5000);
+}
+
+void turnLeft(){
+  Serial.println("Left turn");
+  setMotor1(255, true);
+  setMotor2(255, false);
+  delay(5000);
+}
+
+void turnRight(){
+  Serial.println("Right turn");
+  setMotor1(255, false);
+  setMotor2(255, true);
+  delay(5000);
 }
 
 void setMotor1(int speed, boolean reverse)
 {
-  analogWrite(enablePin, speed);
+  analogWrite(enable1Pin, speed);
   digitalWrite(in1Pin, ! reverse);
   digitalWrite(in2Pin, reverse);
 }
 
 void setMotor2(int speed, boolean reverse)
 {
-  analogWrite(enablePin, speed);
+  analogWrite(enable2Pin, speed);
   digitalWrite(in3Pin, ! reverse);
   digitalWrite(in4Pin, reverse);
 }
+
+void stopMotor2(){
+  analogWrite(enable2Pin, 0);
+  digitalWrite(in3Pin, false);
+  digitalWrite(in4Pin, false);
+}
+
+void stopMotor1(){
+  analogWrite(enable1Pin, 0);
+  digitalWrite(in1Pin, false);
+  digitalWrite(in2Pin, false);
+}
+
 
