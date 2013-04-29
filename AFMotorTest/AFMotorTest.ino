@@ -27,12 +27,8 @@ NewPing sonar[SONAR_NUM] = {     // Sensor object array.
   NewPing(18,19, MAX_DISTANCE)  // Right sonar
   };
 
-  AF_DCMotor Motor1(3);
-AF_DCMotor Motor2(4);
-
-//NewPing fwdSonar(14, 15, MAX_DISTANCE); // NewPing setup of pins and maximum distance.
-//NewPing leftSonar(16, 17, MAX_DISTANCE); // NewPing setup of pins and maximum distance.
-//NewPing rightSonar(18, 19, MAX_DISTANCE); // NewPing setup of pins and maximum distance.
+  AF_DCMotor leftMotor(3);
+AF_DCMotor rightMotor(4);
 
 void setup()
 {
@@ -72,18 +68,28 @@ void oneSensorCycle() { // Sensor ping cycle complete, do something with the res
   Serial.println();
 }
 
+int prevDistance = -1;
+int currentSpeed = -1;
+
 void loop()
 {
   checkPingSensors();
 
+  int forwardDistance = (cm[0] == INFINITE_DISTANCE) ? sonar[0].ping_cm() : cm[0];
+  int leftDistance = (cm[1] == INFINITE_DISTANCE) ? sonar[1].ping_cm() : cm[1];
+  int rightDistance = (cm[2] == INFINITE_DISTANCE) ? sonar[2].ping_cm(): cm[2];
+  
   // Move the Rover
-
-  if(cm[0] > 20){
+  if(prevDistance == -1){
+    prevDistance = forwardDistance;
+  }  
+  if(forwardDistance > 20){
     if(movingBack){
       brake();
       movingBack = false;
     }
-    forward();
+    forward(forwardDistance);
+    prevDistance = forwardDistance;
   } 
   else {
     if(!movingBack){
@@ -96,63 +102,82 @@ void loop()
     brake();
 
     // randomly turn right or left
-    if(cm[1] > cm [2]){
+    if(leftDistance > rightDistance){
       turnLeft(); 
     } 
-    else if (cm[1] < cm[2]){
+    else if (leftDistance < rightDistance){
       turnRight(); 
     } 
     else {
-      if (random(2) == 0) {
-        turnLeft();
-      } 
-      else {
-        turnRight(); 
-      }
+      randomTurn();
     }
-    //    delay(500);                                                                                                                                           ; o
+    //    delay(500);
   }
 }
 
-void forward(){
-  //  Serial.println("Forward...");
-  Motor1.setSpeed(MODERATE_SPEED);
-  Motor2.setSpeed(MODERATE_SPEED);
-  Motor1.run(FORWARD);
-  Motor2.run(FORWARD); 
+void randomTurn(){
+  if (random(2) == 0) {
+    turnLeft();
+  } 
+  else {
+    turnRight(); 
+  }
+}
+
+void forward(int currentDistance){
+  // start slow and increase speed
+  Serial.println("Forward...");
+  if(currentDistance > 50){ // increase speed
+    if(currentSpeed < MODERATE_SPEED){
+      currentSpeed += 5;
+    }
+  } else { // reduce speed
+    currentSpeed -= 5;
+  }
+
+  Serial.print("Current speed: ");
+  Serial.println(currentSpeed);
+  
+  leftMotor.setSpeed(currentSpeed);
+  rightMotor.setSpeed(currentSpeed);
+  leftMotor.run(FORWARD);
+  rightMotor.run(FORWARD); 
 }
 
 void reverse(){
   //  Serial.println("Reverse...");
-  Motor1.setSpeed(MODERATE_SPEED);
-  Motor2.setSpeed(MODERATE_SPEED);
-  Motor1.run(BACKWARD);
-  Motor2.run(BACKWARD);
+  leftMotor.setSpeed(MODERATE_SPEED);
+  rightMotor.setSpeed(MODERATE_SPEED);
+  leftMotor.run(BACKWARD);
+  rightMotor.run(BACKWARD);
 }
 
 void brake(){
-  Motor1.setSpeed(0);
-  Motor2.setSpeed(0);
-  Motor1.run(BRAKE);
-  Motor2.run(BRAKE);
+  leftMotor.setSpeed(0);
+  rightMotor.setSpeed(0);
+  leftMotor.run(BRAKE);
+  rightMotor.run(BRAKE);
+  currentSpeed = 0;
   delay(500);
 }
 
 void turnLeft(){
-  turn(Motor1, Motor2);
+  turn(leftMotor, rightMotor);
 }
 
 void turnRight(){
-  turn(Motor2, Motor1);
+  turn(rightMotor, leftMotor);
 }
 
-void turn(AF_DCMotor &motor1, AF_DCMotor &motor2){
-  motor1.setSpeed(TURNING_SPEED);
-  motor2.setSpeed(TURNING_SPEED - 50);
-  motor1.run(FORWARD);
-  motor2.run(BACKWARD);
+void turn(AF_DCMotor &leftMotor, AF_DCMotor &rightMotor){
+  leftMotor.setSpeed(TURNING_SPEED);
+  rightMotor.setSpeed(TURNING_SPEED - 50);
+  leftMotor.run(FORWARD);
+  rightMotor.run(BACKWARD);
   delay(500);
 }
+
+
 
 
 
