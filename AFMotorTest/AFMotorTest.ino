@@ -6,9 +6,10 @@
 #define MAX_DISTANCE 500 // Maximum distance we want to ping for (in centimeters). Maximum sensor distance is rated at 400-500cm.
 
 #define MODERATE_SPEED 150
+#define REVERSE_SPEED  125
 #define TURNING_SPEED 200
 #define TOP_SPEED  255
-#define MIN_SPEED  75
+#define MIN_SPEED  100
 
 #define SONAR_NUM     3 // Number or sensors.
 #define MAX_DISTANCE 200 // Maximum distance (in cm) to ping.
@@ -57,7 +58,7 @@ void checkPingSensors(){
 }
 
 void echoCheck() { // If ping received, set the sensor distance to array.
-  if (sonar[currentSensor].check_timer())
+  while (!sonar[currentSensor].check_timer())
     cm[currentSensor] = sonar[currentSensor].ping_result / US_ROUNDTRIP_CM;
 }
 
@@ -76,16 +77,16 @@ int currentSpeed = -1;
 
 void loop()
 {
-  checkPingSensors();
+  //checkPingSensors();
 
-  int forwardDistance = (cm[0] == INVALID_DISTANCE) ? prevDistance : cm[0];
+ // int forwardDistance = (cm[0] == INVALID_DISTANCE) ? prevDistance : cm[0];
   
- // int forwardDistance = forwardSonar.ping_cm();
+ int forwardDistance = forwardSonar.ping_cm();
    
   if(forwardDistance == 0) return;
   
-  //Serial.print("Forward distance: ");
-  //Serial.println(forwardDistance);
+  Serial.print("Forward distance: ");
+  Serial.println(forwardDistance);
 
   // Move the Rover
   if(prevDistance == -1){
@@ -106,11 +107,13 @@ void loop()
     }
 
     reverse();
-    delay(500);
     brake();
 
-    int leftDistance = cm[1];
-    int rightDistance = cm[2];
+    /*int leftDistance = cm[1];
+    int rightDistance = cm[2];*/
+    
+     int leftDistance = leftSonar.ping_cm();
+    int rightDistance = rightSonar.ping_cm();
 
     // randomly turn right or left
     if(leftDistance > rightDistance){
@@ -142,17 +145,21 @@ void forward(int currentDistance){
   if(currentSpeed == 0){
     currentSpeed = MIN_SPEED; 
   }
-  if(currentDistance > 50){ // increase speed
+  if(currentDistance > 40){ // increase speed
     if(currentSpeed < MODERATE_SPEED){
-      currentSpeed += 5;
+      if(currentSpeed < MIN_SPEED + 10){
+         currentSpeed += 5; 
+      } else {
+        currentSpeed += 2;
+      }
     }
+   // currentSpeed = MODERATE_SPEED;
   } 
   else { // reduce speed
     if(currentSpeed > MIN_SPEED){
-      currentSpeed -= 5;
+      currentSpeed -= 10;
     }
   }
-  //currentSpeed = MODERATE_SPEED;
   
   Serial.print("Current speed: ");
   Serial.println(currentSpeed);
@@ -165,10 +172,11 @@ void forward(int currentDistance){
 
 void reverse(){
   //  Serial.println("Reverse...");
-  leftMotor.setSpeed(MODERATE_SPEED);
-  rightMotor.setSpeed(MODERATE_SPEED);
+  leftMotor.setSpeed(REVERSE_SPEED);
+  rightMotor.setSpeed(REVERSE_SPEED);
   leftMotor.run(BACKWARD);
   rightMotor.run(BACKWARD);
+  delay(random(500));
 }
 
 void brake(){
@@ -177,7 +185,6 @@ void brake(){
   leftMotor.run(BRAKE);
   rightMotor.run(BRAKE);
   currentSpeed = 0;
-  delay(500);
 }
 
 void turnLeft(){
@@ -193,7 +200,7 @@ void turn(AF_DCMotor &leftMotor, AF_DCMotor &rightMotor){
   rightMotor.setSpeed(TURNING_SPEED - 50);
   leftMotor.run(FORWARD);
   rightMotor.run(BACKWARD);
-  delay(500);
+  delay(random(600));
 }
 
 
