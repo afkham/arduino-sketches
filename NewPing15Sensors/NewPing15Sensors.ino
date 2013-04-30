@@ -17,7 +17,7 @@
 
 unsigned long pingTimer[SONAR_NUM]; // Holds the times when the next ping should happen for each sensor.
 unsigned int cm[SONAR_NUM];         // Where the ping distances are stored.
-uint8_t currentSensor = 0;          // Keeps track of which sensor is active.
+//int currentSensor = 0;          // Keeps track of which sensor is active.
 
 NewPing sonar[SONAR_NUM] = {     // Sensor object array.
   NewPing(14,15, MAX_DISTANCE), // Forward sonar
@@ -30,7 +30,7 @@ void setup() {
   pingTimer[0] = millis() + 75;           // First ping starts at 75ms, gives time for the Arduino to chill before starting.
   for (uint8_t i = 1; i < SONAR_NUM; i++) // Set the starting time for each sensor.
     pingTimer[i] = pingTimer[i - 1] + PING_INTERVAL;
-}
+}9
 
 void loop() {
   for (uint8_t i = 0; i < SONAR_NUM; i++) { // Loop through all the sensors.
