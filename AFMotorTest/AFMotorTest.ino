@@ -145,7 +145,7 @@ void forward(int currentDistance){
   if(currentSpeed == 0){
     currentSpeed = MIN_SPEED; 
   }
-  if(currentDistance > 40){ // increase speed
+  /*if(currentDistance > 40){ // increase speed
     if(currentSpeed < MODERATE_SPEED){
       if(currentSpeed < MIN_SPEED + 10){
          currentSpeed += 5; 
@@ -159,8 +159,8 @@ void forward(int currentDistance){
     if(currentSpeed > MIN_SPEED){
       currentSpeed -= 10;
     }
-  }
-  
+  }*/
+  //currentSpeed = 80;
   Serial.print("Current speed: ");
   Serial.println(currentSpeed);
 
