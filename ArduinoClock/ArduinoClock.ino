@@ -90,7 +90,8 @@ RTC_DS1307 RTC;
 int noteIndex = 0;
 const int noteCount = 2;
 //int notes[noteCount] = {NOTE_F7,NOTE_FS7, NOTE_A7, NOTE_AS7};
-int notes[noteCount] = {NOTE_A7, NOTE_AS7};
+int notes[noteCount] = {
+  NOTE_A7, NOTE_AS7};
 
 void setupRTC () {
   Serial.begin(9600);
@@ -111,25 +112,12 @@ void resetDigits(){
   digitalWrite(digit4, HIGH); // common cathode
 }
 
-void writeDot(byte dot) {
-  // digitalWrite(segmentDP, dot);
-}
-
 void sevenSegWrite(byte digit, int digitPosition) {
   byte pin = 2;
   int number =  numbers[digit];
   resetDigits();
   digitalWrite(digitPosition, LOW);
   updateShiftRegister(number);
-  /*for (int bitIndex = 0; bitIndex < 7; bitIndex++){
-   if(commonCathode){
-   digitalWrite(pin, 1-bitRead(number, bitIndex));
-   } 
-   else {
-   digitalWrite(pin, bitRead(number, bitIndex));
-   }
-   ++pin;
-   }*/
 }
 
 void loop(){
@@ -155,15 +143,16 @@ void loop(){
   sevenSegWrite(hour/10, digit4); 
   updateShiftRegister(0);
 
-  if(soundAlarm){ 
-  if(playTone(notes[noteIndex], 10)){
-    noteIndex++;
-    if(noteIndex >= noteCount){
-      noteIndex=0; 
+  if(soundAlarm()){ 
+    if(playTone(notes[noteIndex], 10)){
+      noteIndex++;
+      if(noteIndex >= noteCount){
+        noteIndex=0; 
+      }
+    } 
+    else {
+      noTone(alarmPin);
     }
-  } else {
-    
-  }
   }
 }
 
@@ -175,6 +164,17 @@ void updateShiftRegister(byte value)
 }
 
 long noteStartTime = -1;
+
+boolean offAlarm(){
+
+}
+
+boolean endAlarmSetup(){
+}
+
+boolean startAlarmSetup(){
+
+}
 
 boolean soundAlarm(){
   return false;
@@ -204,6 +204,7 @@ boolean playTone(int note, int noteDuration){
   }
   return true;
 }
+
 
 
 
