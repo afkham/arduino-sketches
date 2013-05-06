@@ -1,15 +1,19 @@
 #include <AFMotor.h>
+#include <SoftwareSerial.h>
 #include <NewPing.h>
+
+#define BT_TX_PIN 3
+#define BT_RX_PIN 10
 
 #define TRIGGER_PIN  14  // Arduino pin tied to trigger pin on the ultrasonic sensor.
 #define ECHO_PIN     15  // Arduino pin tied to echo pin on the ultrasonic sensor.
 #define MAX_DISTANCE 500 // Maximum distance we want to ping for (in centimeters). Maximum sensor distance is rated at 400-500cm.
 
-#define MODERATE_SPEED 150
+#define MODERATE_SPEED 200
 #define REVERSE_SPEED  125
-#define TURNING_SPEED 200
+#define TURNING_SPEED 225
 #define TOP_SPEED  255
-#define MIN_SPEED  100
+#define MIN_SPEED  150
 
 #define SONAR_NUM     3 // Number or sensors.
 #define MAX_DISTANCE 200 // Maximum distance (in cm) to ping.
@@ -21,70 +25,35 @@ NewPing forwardSonar(14,15, MAX_DISTANCE); // Forward sonar
 NewPing leftSonar(16,17, MAX_DISTANCE); // Left sonar
 NewPing rightSonar(18,19, MAX_DISTANCE);  // Right sonar
 
-unsigned long pingTimer[SONAR_NUM]; // Holds the times when the next ping should happen for each sensor.
-int cm[SONAR_NUM];         // Where the ping distances are stored.
-uint8_t currentSensor = 0;          // Keeps track of which sensor is active.
-
-NewPing sonar[SONAR_NUM] = {     // Sensor object array.
-  forwardSonar, // Forward sonar
-  leftSonar, // Left sonar
-  rightSonar  // Right sonar
-};
-
 AF_DCMotor leftMotor(3);
 AF_DCMotor rightMotor(4);
+
+
+SoftwareSerial BTSerial(BT_RX_PIN, BT_TX_PIN);
 
 void setup()
 {
   Serial.begin(9600);
-  pingTimer[0] = millis() + 75;           // First ping starts 
-  for (uint8_t i = 1; i < SONAR_NUM; i++) // Set the starting time for each sensor.
-    pingTimer[i] = pingTimer[i - 1] + PING_INTERVAL;
+  BTSerial.begin(9600);
 }
 
 boolean movingBack = false;
-
-void checkPingSensors(){
-  for (uint8_t i = 0; i < SONAR_NUM; i++) { // Loop through all the sensors.
-    if (millis() >= pingTimer[i]) {         // Is it this sensor's time to ping?
-      pingTimer[i] += PING_INTERVAL * SONAR_NUM;  // Set next time this sensor will be pinged.
-      if (i == 0 && currentSensor == SONAR_NUM - 1) oneSensorCycle(); // Sensor ping cycle complete, do something with the results.
-      sonar[currentSensor].timer_stop();          // Make sure previous timer is canceled before starting a new ping (insurance).
-      currentSensor = i;                          // Sensor being accessed.
-      cm[currentSensor] = INVALID_DISTANCE;                      // Make distance INVALID in case there's no ping echo for this sensor.
-      sonar[currentSensor].ping_timer(echoCheck); // Do the ping (processing continues, interrupt will call echoCheck to look for echo).
-    }
-  }
-}
-
-void echoCheck() { // If ping received, set the sensor distance to array.
-  while (!sonar[currentSensor].check_timer())
-    cm[currentSensor] = sonar[currentSensor].ping_result / US_ROUNDTRIP_CM;
-}
-
-void oneSensorCycle() { // Sensor ping cycle complete, do something with the results.
-  for (uint8_t i = 0; i < SONAR_NUM; i++) {
-    Serial.print(i);
-    Serial.print("=");
-    Serial.print(cm[i]);
-    Serial.print("cm ");
-  }
-  Serial.println();
-}
 
 int prevDistance = 0;
 int currentSpeed = -1;
 
 void loop()
 {
-  //checkPingSensors();
 
- // int forwardDistance = (cm[0] == INVALID_DISTANCE) ? prevDistance : cm[0];
+  /*if (BTSerial.available() > 0){
+     Serial.println(BTSerial.read());
+  }
+  return;*/
   
- int forwardDistance = forwardSonar.ping_cm();
-   
+  int forwardDistance = forwardSonar.ping_cm();
+
   if(forwardDistance == 0) return;
-  
+
   Serial.print("Forward distance: ");
   Serial.println(forwardDistance);
 
@@ -93,7 +62,7 @@ void loop()
     prevDistance = forwardDistance;
   }  
   if(forwardDistance > 20){
-    if(movingBack){
+   if(movingBack){
       brake();
       movingBack = false;
     }
@@ -109,10 +78,7 @@ void loop()
     reverse();
     brake();
 
-    /*int leftDistance = cm[1];
-    int rightDistance = cm[2];*/
-    
-     int leftDistance = leftSonar.ping_cm();
+    int leftDistance = leftSonar.ping_cm();
     int rightDistance = rightSonar.ping_cm();
 
     // randomly turn right or left
@@ -145,21 +111,21 @@ void forward(int currentDistance){
   if(currentSpeed == 0){
     currentSpeed = MIN_SPEED; 
   }
-  /*if(currentDistance > 40){ // increase speed
-    if(currentSpeed < MODERATE_SPEED){
-      if(currentSpeed < MIN_SPEED + 10){
-         currentSpeed += 5; 
-      } else {
-        currentSpeed += 2;
-      }
-    }
+  if(currentDistance > 40){ // increase speed
+   if(currentSpeed < MODERATE_SPEED){
+   if(currentSpeed < MIN_SPEED + 10){
+   currentSpeed += 5; 
+   } else {
+   currentSpeed += 2;
+   }
+   }
    // currentSpeed = MODERATE_SPEED;
-  } 
-  else { // reduce speed
-    if(currentSpeed > MIN_SPEED){
-      currentSpeed -= 10;
-    }
-  }*/
+   } 
+   else { // reduce speed
+   if(currentSpeed > MIN_SPEED){
+   currentSpeed -= 10;
+   }
+   }
   //currentSpeed = 80;
   Serial.print("Current speed: ");
   Serial.println(currentSpeed);
@@ -202,6 +168,7 @@ void turn(AF_DCMotor &leftMotor, AF_DCMotor &rightMotor){
   rightMotor.run(BACKWARD);
   delay(random(600));
 }
+
 
 
 

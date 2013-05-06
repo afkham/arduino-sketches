@@ -2,18 +2,25 @@
 #define commonCathode 1
 // Date and time functions using a DS1307 RTC connected via I2C and Wire lib
 #include <Wire.h>
+#include <EEPROM.h>
 #include "RTClib.h"
 
+#define NOTE_A7  3520
+#define NOTE_AS7 3729
+
 // Shift register pins
-int latchPin = 4;
-int clockPin = 3;
-int dataPin = 2;
+int latchPin = 7;
+int clockPin = 6;
+int dataPin = 13;
 
 // Select digit pins
-int digit1 = 5;
-int digit2 = 6;
-int digit3 = 7;
-int digit4 = 8;
+int digit1 = 12;
+int digit2 = 11;
+int digit3 = 10;
+int digit4 = 9;
+
+// alarm pin
+int alarmPin = 14;
 
 /*
 10 digits:
@@ -79,18 +86,19 @@ void setup() {
 }
 
 RTC_DS1307 RTC;
+
+int noteIndex = 0;
+const int noteCount = 2;
+//int notes[noteCount] = {NOTE_F7,NOTE_FS7, NOTE_A7, NOTE_AS7};
+int notes[noteCount] = {NOTE_A7, NOTE_AS7};
+
 void setupRTC () {
-  Serial.begin(57600);
-  pinMode(A3, OUTPUT); 
-  pinMode(A2, OUTPUT); 
-  
-  digitalWrite(A3, HIGH);
-  digitalWrite(A2, LOW);
-  
+  Serial.begin(9600);
+
   Wire.begin();
   RTC.begin();
   if (! RTC.isrunning()) {
-    Serial.println("RTC is NOT running!");
+    //Serial.println("RTC is NOT running!");
     // following line sets the RTC to the date & time this sketch was compiled
     RTC.adjust(DateTime(__DATE__, __TIME__));
   }
@@ -125,25 +133,38 @@ void sevenSegWrite(byte digit, int digitPosition) {
 }
 
 void loop(){
-  
+
   DateTime now = RTC.now();
   int hour = now.hour();
   int minute = now.minute();
-  
+
+  Serial.println(hour);
+
   sevenSegWrite(minute%10, digit1); 
   updateShiftRegister(0);
-  
-  
+
+
   sevenSegWrite(minute/10, digit2); 
   updateShiftRegister(0);
-  
-  
+
+
   sevenSegWrite(hour%10, digit3); 
   updateShiftRegister(0);
-  
+
 
   sevenSegWrite(hour/10, digit4); 
   updateShiftRegister(0);
+
+  if(soundAlarm){ 
+  if(playTone(notes[noteIndex], 10)){
+    noteIndex++;
+    if(noteIndex >= noteCount){
+      noteIndex=0; 
+    }
+  } else {
+    
+  }
+  }
 }
 
 void updateShiftRegister(byte value)
@@ -151,6 +172,37 @@ void updateShiftRegister(byte value)
   digitalWrite(latchPin, LOW);
   shiftOut(dataPin, clockPin, LSBFIRST, value);
   digitalWrite(latchPin, HIGH);
+}
+
+long noteStartTime = -1;
+
+boolean soundAlarm(){
+  return false;
+}
+
+boolean playTone(int note, int noteDuration){
+  // to calculate the note duration, take one second 
+  // divided by the note type.
+  //e.g. quarter note = 1000 / 4, eighth note = 1000/8, etc.
+
+  int duration = 1000/noteDuration;
+  tone(alarmPin, note,duration);
+
+  // to distinguish the notes, set a minimum time between them.
+  // the note's duration + 30% seems to work well:
+  if(noteStartTime == -1){
+    noteStartTime = millis();
+    return false;
+  } 
+  else if(noteStartTime !=-1 && millis() - noteStartTime >= duration * 1.3){
+    noTone(alarmPin); 
+    noteStartTime = -1;
+  } 
+  else {
+    Serial.println(false);
+    return false;
+  }
+  return true;
 }
 
 

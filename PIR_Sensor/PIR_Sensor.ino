@@ -109,7 +109,7 @@ void setup()
 {
   // initialize the serial communications:
   Serial.begin(9600);
-
+  pinMode(14, OUTPUT);
 
   pinMode(signal, INPUT);
   pinMode(sw, INPUT);
@@ -135,7 +135,7 @@ void loop(){
         else {
           state = LOW;
           digitalWrite(led, LOW);
-          noTone(8);
+          noTone(14);
         }
         digitalWrite(onLED, state);
         digitalWrite(offLED, 1-state);
@@ -146,7 +146,7 @@ void loop(){
       return; 
     }
     int val = digitalRead(signal);
-
+val = 1;
     if(val == 1){
       if(playTone(notes[noteIndex], 10)){
         noteIndex++;
@@ -158,14 +158,14 @@ void loop(){
     } 
     else {
       digitalWrite(led, LOW);
-      noTone(8);
+      noTone(14);
     }    
   } 
   else {
     initialized = true;  
     digitalWrite(onLED, HIGH);
     digitalWrite(offLED, LOW);
-    noTone(8);
+    noTone(14);
     digitalWrite(led, LOW);
   }
 }
@@ -178,7 +178,7 @@ boolean playTone(int note, int noteDuration){
   //e.g. quarter note = 1000 / 4, eighth note = 1000/8, etc.
 
   int duration = 1000/noteDuration;
-  tone(8, note,duration);
+  tone(14, note,duration);
 
   // to distinguish the notes, set a minimum time between them.
   // the note's duration + 30% seems to work well:
@@ -186,7 +186,7 @@ boolean playTone(int note, int noteDuration){
     noteStartTime = millis();
     return false;
   } else if(noteStartTime !=-1 && millis() - noteStartTime >= duration * 1.3){
-     noTone(8); 
+     noTone(14); 
      noteStartTime = -1;
   } else {
     Serial.println(false);
