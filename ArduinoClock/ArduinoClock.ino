@@ -25,9 +25,9 @@ int alarmPin = 14;
 int leftButtonPin = 4;
 int rightButtonPin = 5;
 
-// Instantiate a Bounce object with a 5 millisecond debounce time
-Bounce leftButton = Bounce(leftButtonPin,5); 
-Bounce rightButton = Bounce(rightButtonPin,5); 
+// Instantiate a Bounce object with a 20 millisecond debounce time
+Bounce leftButton = Bounce(leftButtonPin,20); 
+Bounce rightButton = Bounce(rightButtonPin,20); 
 /*
 10 digits:
  Each defines which segments should be on/off for that digit: A,B,C,D,E,F,G,P
@@ -47,6 +47,9 @@ byte numbers[10] =
   B11110110  // 9
 };
 
+byte alarmMin;
+byte alarmHour;
+
 void setup() {
   Serial.begin(9600);
 
@@ -63,10 +66,14 @@ void setup() {
 
   resetDigits();
   setupRTC();
+
+  alarmMin = EEPROM.read(0);
+  alarmHour = EEPROM.read(1);
 }
 
 RTC_DS1307 RTC;
 boolean setupAlarm = false;
+boolean alarmOn = false;
 
 int noteIndex = 0;
 const int noteCount = 2;
@@ -99,49 +106,84 @@ void sevenSegWrite(byte digit, int digitPosition) {
   updateShiftRegister(number);
 }
 
-void loop(){
-  leftButton.update();
-  rightButton.update();
+boolean leftButtonPressed = false;
+boolean rightButtonPressed = false;
 
+void loop(){
+  checkButtonsPressed();
+  checkAlarmSetup();
+
+  if(!setupAlarm){
+    DateTime now = RTC.now();
+    int hour = now.hour();
+    int minute = now.minute();
+    displayTime(minute, hour); 
+    if(soundAlarm(minute, hour)){ 
+      if(playTone(notes[noteIndex], 10)){
+        noteIndex++;
+        if(noteIndex >= noteCount){
+          noteIndex=0; 
+        }
+      } 
+      else {
+        noTone(alarmPin);
+      }
+    }
+  } 
+  else {
+
+
+    //TODO: show alarm values
+    int alarmMin = EEPROM.read(0);
+    int alarmHour = EEPROM.read(1);
+    displayTime(alarmMin, alarmHour);
+
+  }
+}
+
+void checkButtonsPressed(){
+  leftButton.update();
   int leftValue = leftButton.read();
+
+  rightButton.update();
   int rightValue = rightButton.read();
   if ( leftValue == HIGH) {
-    Serial.println("Left button pressed");
-  }
-  if ( rightValue == HIGH) {
-    Serial.println("Right button pressed");
-  }
-
-  DateTime now = RTC.now();
-  int hour = now.hour();
-  int minute = now.minute();
-
-  sevenSegWrite(minute%10, digit1); 
-  updateShiftRegister(0);
-
-
-  sevenSegWrite(minute/10, digit2); 
-  updateShiftRegister(0);
-
-
-  sevenSegWrite(hour%10, digit3); 
-  updateShiftRegister(0);
-
-
-  sevenSegWrite(hour/10, digit4); 
-  updateShiftRegister(0);
-
-  if(soundAlarm()){ 
-    if(playTone(notes[noteIndex], 10)){
-      noteIndex++;
-      if(noteIndex >= noteCount){
-        noteIndex=0; 
-      }
+    if(!leftButtonPressed){
+      Serial.println("Left button pressed");
+      leftButtonPressed = true;
     } 
-    else {
-      noTone(alarmPin);
+  }
+  else {
+    leftButtonPressed = false;
+  }
+
+  if ( rightValue == HIGH) {
+    if(!rightButtonPressed){
+      Serial.println("Right button pressed");
+      rightButtonPressed = true;
     }
   }
+  else{
+    rightButtonPressed = false;
+  }
+}
+
+void displayTime(int minute, int hour){
+  int minLSB = minute%10; 
+  sevenSegWrite(minLSB, digit1); 
+  updateShiftRegister(0);
+
+  int minMSB = minute/10;
+  sevenSegWrite(minMSB, digit2); 
+  updateShiftRegister(0);
+
+  int hourLSB = hour%10;
+  sevenSegWrite(hourLSB, digit3); 
+  updateShiftRegister(0);
+
+  int hourMSB = hour/10;
+  sevenSegWrite(hourMSB, digit4); 
+  updateShiftRegister(0);
 }
 
 void updateShiftRegister(byte value)
@@ -154,29 +196,41 @@ void updateShiftRegister(byte value)
 long noteStartTime = -1;
 
 boolean offAlarm(){
-
+  alarmOn = false;
+  return alarmOn;
 }
 
-boolean endAlarmSetup(){
-  if(leftButton.read() == HIGH && rightButton.read()){
-     if(setupAlarm){
-        setupAlarm = false; 
-     }
+void checkAlarmSetup(){
+  if(leftButtonPressed && rightButtonPressed){
+    if(!setupAlarm){
+      setupAlarm = true; 
+    } 
+    else {
+      setupAlarm = false;   
+    }
   } 
-  return setupAlarm;
+  else if(setupAlarm){
+    if(rightButtonPressed){
+      alarmMin++;
+      if(alarmMin >= 60){
+        alarmMin = 0; 
+      }
+      EEPROM.write(0, alarmMin);
+    }
+    if(leftButtonPressed){
+      alarmHour++;
+      if(alarmHour >= 24){
+        alarmHour = 0;
+      }
+      EEPROM.write(1, alarmHour);
+    }
+  }
 }
 
-boolean startAlarmSetup(){
-  if(leftButton.read() == HIGH && rightButton.read()){
-     if(!setupAlarm){
-        setupAlarm = true; 
-     }
-  } 
-  return setupAlarm;
-}
-
-boolean soundAlarm(){
-  return false;
+boolean soundAlarm(int minute,int  hour){
+  byte _minute = EEPROM.read(0);
+  byte _hour = EEPROM.read(1);
+  return _minute == minute && _hour == hour;
 }
 
 boolean playTone(int note, int noteDuration){
@@ -203,6 +257,12 @@ boolean playTone(int note, int noteDuration){
   }
   return true;
 }
+
+
+
+
+
+
 
 
 
