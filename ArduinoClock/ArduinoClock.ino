@@ -3,6 +3,7 @@
 // Date and time functions using a DS1307 RTC connected via I2C and Wire lib
 #include <Wire.h>
 #include <EEPROM.h>
+#include <Bounce.h>
 #include "RTClib.h"
 
 #define NOTE_A7  3520
@@ -21,7 +22,12 @@ int digit4 = 9;
 
 // alarm pin
 int alarmPin = 14;
+int leftButtonPin = 4;
+int rightButtonPin = 5;
 
+// Instantiate a Bounce object with a 5 millisecond debounce time
+Bounce leftButton = Bounce(leftButtonPin,5); 
+Bounce rightButton = Bounce(rightButtonPin,5); 
 /*
 10 digits:
  Each defines which segments should be on/off for that digit: A,B,C,D,E,F,G,P
@@ -41,37 +47,8 @@ byte numbers[10] =
   B11110110  // 9
 };
 
-
-/*byte numbers[10] = 
- {
- B11000000, // 0
- B11111001, // 1
- B10100100, // 2
- B10110000, // 3
- B10011001, // 4
- B10010010, // 5
- B10000010, // 6
- B11111000, // 7
- B10000000, // 8
- B10010000  // 9
- };*/
-
-/*
-byte numbers[10] = 
- {
- B00111111, // 0
- B00000110, // 1
- B01011011, // 2
- B01001111, // 3
- B01100110, // 4
- B01101101, // 5
- B01111101, // 6
- B00000111, // 7
- B01111111, // 8
- B01101111  // 9
- };*/
-
 void setup() {
+  Serial.begin(9600);
 
   pinMode(latchPin, OUTPUT);
   pinMode(dataPin, OUTPUT);
@@ -81,11 +58,15 @@ void setup() {
   pinMode(digit3, OUTPUT);
   pinMode(digit4, OUTPUT);
 
+  pinMode(rightButtonPin,INPUT);
+  pinMode(leftButtonPin,INPUT);
+
   resetDigits();
   setupRTC();
 }
 
 RTC_DS1307 RTC;
+boolean setupAlarm = false;
 
 int noteIndex = 0;
 const int noteCount = 2;
@@ -94,8 +75,6 @@ int notes[noteCount] = {
   NOTE_A7, NOTE_AS7};
 
 void setupRTC () {
-  Serial.begin(9600);
-
   Wire.begin();
   RTC.begin();
   if (! RTC.isrunning()) {
@@ -121,12 +100,21 @@ void sevenSegWrite(byte digit, int digitPosition) {
 }
 
 void loop(){
+  leftButton.update();
+  rightButton.update();
+
+  int leftValue = leftButton.read();
+  int rightValue = rightButton.read();
+  if ( leftValue == HIGH) {
+    Serial.println("Left button pressed");
+  }
+  if ( rightValue == HIGH) {
+    Serial.println("Right button pressed");
+  }
 
   DateTime now = RTC.now();
   int hour = now.hour();
   int minute = now.minute();
-
-  Serial.println(hour);
 
   sevenSegWrite(minute%10, digit1); 
   updateShiftRegister(0);
@@ -170,10 +158,21 @@ boolean offAlarm(){
 }
 
 boolean endAlarmSetup(){
+  if(leftButton.read() == HIGH && rightButton.read()){
+     if(setupAlarm){
+        setupAlarm = false; 
+     }
+  } 
+  return setupAlarm;
 }
 
 boolean startAlarmSetup(){
-
+  if(leftButton.read() == HIGH && rightButton.read()){
+     if(!setupAlarm){
+        setupAlarm = true; 
+     }
+  } 
+  return setupAlarm;
 }
 
 boolean soundAlarm(){
@@ -204,6 +203,8 @@ boolean playTone(int note, int noteDuration){
   }
   return true;
 }
+
+
 
 
 
