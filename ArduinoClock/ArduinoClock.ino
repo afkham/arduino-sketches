@@ -238,7 +238,7 @@ void loop(){
 }
 
 void alarmCycle(){
-  if(millis() - alarmSwapTime >= 2000){
+  if(millis() - alarmSwapTime >= 500){
      alarmSwapTime = millis();
      displayAlarm = !displayAlarm;
   }
@@ -269,12 +269,10 @@ void checkAlarmButtons(){
       alarmControlButtonPressed = true;
       if(!setupAlarm){
         setupAlarm = true;
-        alarmSwapTime = millis();
         Serial.println("setupAlarm = true");
       } 
       else {
         setupAlarm = false; 
-        alarmSwapTime = -1; 
         Serial.println("setupAlarm = false");
       }
     }
