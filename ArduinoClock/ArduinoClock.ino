@@ -97,21 +97,26 @@
 #define NOTE_DS8 4978
 
 // Shift register pins
-int latchPin = 7;
-int clockPin = 6;
-int dataPin = 13;
+const int latchPin = 7;
+const int clockPin = 6;
+const int dataPin = 13;
 
 // Select digit pins
-int digit1 = 12;
-int digit2 = 11;
-int digit3 = 10;
-int digit4 = 9;
+const int digit1 = 12;
+const int digit2 = 11;
+const int digit3 = 10;
+const int digit4 = 9;
 
 // alarm pin
-int alarmTonePin = 14;
-int alarmControlPin = 3;
-int leftButtonPin = 4;
-int rightButtonPin = 5;
+const int alarmTonePin = 14;
+const int alarmControlPin = 3;
+const int leftButtonPin = 4;
+const int rightButtonPin = 5;
+
+// EEPROM locations
+const int minuteLocation = 0;
+const int hourLocation = 1;
+const int alarmOnLocation = 2;
 
 // Instantiate a Bounce object with a 20 millisecond debounce time
 Bounce alarmControlButton = Bounce(alarmControlPin,20); 
@@ -122,7 +127,7 @@ Bounce rightButton = Bounce(rightButtonPin,20);
  Each defines which segments should be on/off for that digit: A,B,C,D,E,F,G,P
  */
 
-byte numbers[10] = 
+const byte numbers[10] = 
 {
   B11111100, // 0
   B01100000, // 1
@@ -138,6 +143,18 @@ byte numbers[10] =
 
 byte alarmMin;
 byte alarmHour;
+boolean alarmOn = false;
+RTC_DS1307 RTC;
+boolean setupAlarm = false;
+
+int noteIndex = 0;
+const int noteCount = 2;
+//int notes[noteCount] = {
+  //NOTE_F7,NOTE_FS7, NOTE_A7, NOTE_AS7};
+ // int notes[noteCount] = { NOTE_A4, NOTE_B4,NOTE_C3};
+//int notes[noteCount] = {
+//  NOTE_A7, NOTE_AS7};
+int notes[noteCount] = {400, 1000};
 
 void setup() {
   Serial.begin(9600);
@@ -157,20 +174,10 @@ void setup() {
   resetDigits();
   setupRTC();
 
-  alarmMin = EEPROM.read(0);
-  alarmHour = EEPROM.read(1);
+  alarmMin = EEPROM.read(minuteLocation);
+  alarmHour = EEPROM.read(hourLocation);
+  alarmOn = EEPROM.read(alarmOnLocation);
 }
-
-RTC_DS1307 RTC;
-boolean setupAlarm = false;
-boolean alarmOn = false;
-
-int noteIndex = 0;
-const int noteCount = 4;
-int notes[noteCount] = {
-  NOTE_F7,NOTE_FS7, NOTE_A7, NOTE_AS7};
-//int notes[noteCount] = {
-//  NOTE_A7, NOTE_AS7};
 
 void setupRTC () {
   Wire.begin();
@@ -201,10 +208,10 @@ boolean leftButtonPressed = false;
 boolean rightButtonPressed = false;
 boolean alarmControlButtonPressed = false;
 
-long blinkStartTime = -1;
-boolean displayOn = true;
 boolean displayAlarm = true;
-int alarmSwapTime = -1;
+long alarmSwapTime = -1;
+
+boolean playingAlarm = false;
 
 void loop(){
   checkAlarmButtons();
@@ -213,8 +220,8 @@ void loop(){
     DateTime now = RTC.now();
     int hour = now.hour();
     int minute = now.minute();
-    displayTime(minute, hour); 
-    if(soundAlarm(minute, hour)){ 
+    if(playAlarm(minute, hour)){ 
+      playingAlarm = true;
       if(playTone(notes[noteIndex], 10)){
         noteIndex++;
         if(noteIndex >= noteCount){
@@ -224,7 +231,10 @@ void loop(){
       else {
         noTone(alarmTonePin);
       }
+    } else {
+       playingAlarm = false; 
     }
+    displayTime(minute, hour); 
   } 
   else {
    if(displayAlarm){
@@ -241,6 +251,8 @@ void alarmCycle(){
   if(millis() - alarmSwapTime >= 500){
      alarmSwapTime = millis();
      displayAlarm = !displayAlarm;
+     Serial.print("Alarm cycle:");
+     Serial.println(alarmSwapTime);
   }
 }
 
@@ -267,6 +279,10 @@ void checkAlarmButtons(){
   if(alarmControlValue == HIGH){
     if(!alarmControlButtonPressed){
       alarmControlButtonPressed = true;
+      if(playingAlarm){
+         EEPROM.write(alarmOnLocation, 0);
+        return; 
+      }
       if(!setupAlarm){
         setupAlarm = true;
         Serial.println("setupAlarm = true");
@@ -284,14 +300,13 @@ void checkAlarmButtons(){
   if ( leftValue == HIGH) {
     if(!leftButtonPressed){
       Serial.println("Left button pressed");
-      //      alarmOn = true;
       leftButtonPressed = true;
       if(setupAlarm){
         alarmHour++;
         if(alarmHour >= 24){
           alarmHour = 0;
         }
-        EEPROM.write(1, alarmHour);
+        EEPROM.write(hourLocation, alarmHour);
       }
     } 
   }
@@ -302,14 +317,13 @@ void checkAlarmButtons(){
   if ( rightValue == HIGH) {
     if(!rightButtonPressed){
       Serial.println("Right button pressed");
-      //      alarmOn = true;
       rightButtonPressed = true;
       if(setupAlarm){
         alarmMin++;
         if(alarmMin >= 60){
           alarmMin = 0; 
         }
-        EEPROM.write(0, alarmMin);
+        EEPROM.write(minuteLocation, alarmMin);
       }
     }
   }
@@ -345,10 +359,10 @@ void updateShiftRegister(byte value)
 
 long noteStartTime = -1;
 
-boolean soundAlarm(int minute,int  hour){
-  byte _minute = EEPROM.read(0);
-  byte _hour = EEPROM.read(1);
-  return _minute == minute && _hour == hour;
+boolean playAlarm(int minute,int  hour){
+  byte _minute = EEPROM.read(minuteLocation);
+  byte _hour = EEPROM.read(hourLocation);
+  return EEPROM.read(alarmOnLocation) == 1 && _minute == minute && _hour == hour;
 }
 
 boolean playTone(int note, int noteDuration){
@@ -356,7 +370,7 @@ boolean playTone(int note, int noteDuration){
   // divided by the note type.
   //e.g. quarter note = 1000 / 4, eighth note = 1000/8, etc.
 
-  int duration = 1000/noteDuration;
+  int duration = 1500/noteDuration;
   tone(alarmTonePin, note,duration);
 
   // to distinguish the notes, set a minimum time between them.
@@ -365,7 +379,7 @@ boolean playTone(int note, int noteDuration){
     noteStartTime = millis();
     return false;
   } 
-  else if(noteStartTime !=-1 && millis() - noteStartTime >= duration * 1.3){
+  else if(noteStartTime !=-1 && millis() - noteStartTime >= duration * 1.8){
     noTone(alarmTonePin); 
     noteStartTime = -1;
   } 
