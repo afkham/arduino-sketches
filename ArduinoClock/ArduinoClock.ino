@@ -148,13 +148,14 @@ RTC_DS1307 RTC;
 boolean setupAlarm = false;
 
 int noteIndex = 0;
-const int noteCount = 2;
+const int noteCount = 4;
 //int notes[noteCount] = {
-  //NOTE_F7,NOTE_FS7, NOTE_A7, NOTE_AS7};
- // int notes[noteCount] = { NOTE_A4, NOTE_B4,NOTE_C3};
+ // NOTE_F4,NOTE_FS4, NOTE_G4, NOTE_GS4};
+//NOTE_F7,NOTE_FS7, NOTE_A7, NOTE_AS7};
+//int notes[noteCount] = { NOTE_A4, NOTE_B4,NOTE_C3};
+int notes[noteCount] = {  NOTE_A7, NOTE_AS7};
 //int notes[noteCount] = {
-//  NOTE_A7, NOTE_AS7};
-int notes[noteCount] = {400, 1000};
+  //400, 1000};
 
 void setup() {
   Serial.begin(9600);
@@ -231,13 +232,14 @@ void loop(){
       else {
         noTone(alarmTonePin);
       }
-    } else {
-       playingAlarm = false; 
+    } 
+    else {
+      playingAlarm = false; 
     }
     displayTime(minute, hour); 
   } 
   else {
-   if(displayAlarm){
+    if(displayAlarm){
       showAlarm(); 
     } 
     else {
@@ -249,10 +251,10 @@ void loop(){
 
 void alarmCycle(){
   if(millis() - alarmSwapTime >= 500){
-     alarmSwapTime = millis();
-     displayAlarm = !displayAlarm;
-     Serial.print("Alarm cycle:");
-     Serial.println(alarmSwapTime);
+    alarmSwapTime = millis();
+    displayAlarm = !displayAlarm;
+    Serial.print("Alarm cycle:");
+    Serial.println(alarmSwapTime);
   }
 }
 
@@ -280,7 +282,7 @@ void checkAlarmButtons(){
     if(!alarmControlButtonPressed){
       alarmControlButtonPressed = true;
       if(playingAlarm){
-         EEPROM.write(alarmOnLocation, 0);
+        EEPROM.write(alarmOnLocation, 0);
         return; 
       }
       if(!setupAlarm){
@@ -289,6 +291,7 @@ void checkAlarmButtons(){
       } 
       else {
         setupAlarm = false; 
+        EEPROM.write(alarmOnLocation, 1);
         Serial.println("setupAlarm = false");
       }
     }
@@ -388,6 +391,7 @@ boolean playTone(int note, int noteDuration){
   }
   return true;
 }
+
 
 
 
