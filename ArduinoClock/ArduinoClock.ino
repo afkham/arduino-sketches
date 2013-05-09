@@ -6,6 +6,7 @@
 #include <Bounce.h>
 #include "RTClib.h"
 #include "pitches.h"
+#include <dht11.h>
 
 // Shift register pins
 const int latchPin = 7;
@@ -24,6 +25,9 @@ const int alarmControlPin = 3;
 const int leftButtonPin = 4;
 const int rightButtonPin = 5;
 
+// DHT11 sensor pins
+const int dht11Pin = 15;
+
 // EEPROM locations
 const int minuteLocation = 0;
 const int hourLocation = 1;
@@ -33,12 +37,19 @@ const int alarmOnLocation = 2;
 Bounce alarmControlButton = Bounce(alarmControlPin,20); 
 Bounce leftButton = Bounce(leftButtonPin,20); 
 Bounce rightButton = Bounce(rightButtonPin,20); 
+
+dht11 DHT11;
+int temperature;
+
+int minute;
+int hour;
+
 /*
 10 digits:
  Each defines which segments should be on/off for that digit: A,B,C,D,E,F,G,P
  */
 
-const byte numbers[10] = 
+const byte numbers[11] = 
 {
   B11111100, // 0
   B01100000, // 1
@@ -49,7 +60,8 @@ const byte numbers[10] =
   B10111110, // 6
   B11100000, // 7
   B11111110, // 8
-  B11110110  // 9
+  B11110110,  // 9
+  B10011100  // C
 };
 
 byte alarmMin;
@@ -66,7 +78,19 @@ int melody[] = {
   NOTE_C4, NOTE_G3,NOTE_G3, NOTE_A3, NOTE_G3,0, NOTE_B3, NOTE_C4};
 
 // note durations: 4 = quarter note, 8 = eighth note, etc.:
-int noteDurations[] = {4, 8, 8, 4,4,4,4,4 };
+int noteDurations[] = {
+  4, 8, 8, 4,4,4,4,4 };
+
+boolean leftButtonPressed = false;
+boolean rightButtonPressed = false;
+boolean alarmControlButtonPressed = false;
+
+boolean displayAlarm = true;
+boolean showTime = true;
+long alarmSwapTime = -1;
+long timeSwapTime = -1;
+
+boolean playingAlarm = false;
 
 void setup() {
   Serial.begin(9600);
@@ -99,6 +123,9 @@ void setupRTC () {
     // following line sets the RTC to the date & time this sketch was compiled
     RTC.adjust(DateTime(__DATE__, __TIME__));
   }
+  DateTime now = RTC.now();
+  hour = now.hour();
+  minute = now.minute();
 }
 
 void resetDigits(){
@@ -116,22 +143,10 @@ void sevenSegWrite(byte digit, int digitPosition) {
   updateShiftRegister(number);
 }
 
-boolean leftButtonPressed = false;
-boolean rightButtonPressed = false;
-boolean alarmControlButtonPressed = false;
-
-boolean displayAlarm = true;
-long alarmSwapTime = -1;
-
-boolean playingAlarm = false;
-
 void loop(){
   checkAlarmButtons();
 
   if(!setupAlarm){
-    DateTime now = RTC.now();
-    int hour = now.hour();
-    int minute = now.minute();
     if(playAlarm(minute, hour)){ 
       playingAlarm = true;
       if(playTone(melody[noteIndex],noteDurations[noteIndex])){
@@ -144,7 +159,13 @@ void loop(){
     else {
       playingAlarm = false; 
     }
-    displayTime(minute, hour); 
+    if(showTime){
+      displayTime(minute, hour); 
+    } 
+    else {
+      displayTemperature();
+    }
+    displayCycle();
   } 
   else {
     if(displayAlarm){
@@ -163,6 +184,23 @@ void alarmCycle(){
     displayAlarm = !displayAlarm;
     Serial.print("Alarm cycle:");
     Serial.println(alarmSwapTime);
+  }
+}
+
+void displayCycle(){
+  boolean swap;
+  if((!showTime && millis() - timeSwapTime >= 2000) || (showTime && millis() - timeSwapTime >= 5000)){
+    timeSwapTime = millis();
+    showTime = !showTime;
+    if(!showTime){
+         int chk = DHT11.read(dht11Pin);
+         temperature = (int)DHT11.temperature;
+         Serial.println(temperature); 
+    } else {
+        DateTime now = RTC.now();
+        hour = now.hour();
+        minute = now.minute();
+    }
   }
 }
 
@@ -298,8 +336,22 @@ boolean playTone(int note, int noteDuration){
     return false;
   }
   return true;
-  
+
 }
+
+void displayTemperature(){
+  sevenSegWrite(10, digit1); 
+  updateShiftRegister(0);
+
+  sevenSegWrite(temperature%10, digit2); 
+  updateShiftRegister(0);
+  
+  sevenSegWrite(temperature/10, digit3); 
+  updateShiftRegister(0);
+
+  digitalWrite(digit4, HIGH); // common cathode
+}
+
 
 
 
