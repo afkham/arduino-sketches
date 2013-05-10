@@ -95,12 +95,9 @@ void loop()
 }
 
 float getDistance(NewPing &sonar){
-   int val1 = sonar.ping_cm();
-   delay(33);
-   int val2 = sonar.ping_cm();
-   delay(33);
-   int val3 = sonar.ping_cm();
-   return ((float)(val1+val2+val3))/3.0;
+   int val = sonar.ping_median()/US_ROUNDTRIP_CM;
+   Serial.println(val);
+   return val;
 }
 
 void randomTurn(){
