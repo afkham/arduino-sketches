@@ -7,17 +7,16 @@
 
 #define TRIGGER_PIN  14  // Arduino pin tied to trigger pin on the ultrasonic sensor.
 #define ECHO_PIN     15  // Arduino pin tied to echo pin on the ultrasonic sensor.
-#define MAX_DISTANCE 500 // Maximum distance we want to ping for (in centimeters). Maximum sensor distance is rated at 400-500cm.
+#define MAX_DISTANCE 200 // Maximum distance we want to ping for (in centimeters). Maximum sensor distance is rated at 400-500cm.
 
 #define MODERATE_SPEED 200
-#define REVERSE_SPEED  125
-#define TURNING_SPEED 225
+#define REVERSE_SPEED  180
+#define TURNING_SPEED 255
 #define TOP_SPEED  255
-#define MIN_SPEED  180
+#define MIN_SPEED  125
 
 #define SONAR_NUM     3 // Number or sensors.
-#define MAX_DISTANCE 200 // Maximum distance (in cm) to ping.
-#define PING_INTERVAL 33 // Milliseconds between sensor pings (29ms is about the min to avoid cross-sensor echo).
+#define PING_INTERVAL 50 // Milliseconds between sensor pings (29ms is about the min to avoid cross-sensor echo).
 
 #define INVALID_DISTANCE -1
 
@@ -28,76 +27,129 @@ NewPing rightSonar(18,19, MAX_DISTANCE);  // Right sonar
 AF_DCMotor leftMotor(3);
 AF_DCMotor rightMotor(4);
 
+enum motion{
+  stateForward,stateReverse,stateLeftTurn,stateRightTurn,stateStopped};
+motion _motion;
 
 SoftwareSerial BTSerial(BT_RX_PIN, BT_TX_PIN);
 
 void setup()
 {
-  Serial.begin(9600);
+  Serial.begin(115200);
   BTSerial.begin(9600);
   forward();
   delay(100);
+  _motion = stateStopped;
 }
 
 
 int prevDistance = 0;
-int currentSpeed = -1;
+int currentSpeed = 0;
+
+
+long reverseStartTime = -1;
+int reversingTime;
+
+long turnStartTime = -1;
+long turnTime;
 
 void loop()
 {
 
-  /*if (BTSerial.available() > 0){
-   Serial.println(BTSerial.read());
-   }
-   return;*/
+  switch(_motion){
+  case stateForward:
+    { 
+      float forwardDistance = getDistance(forwardSonar);
+      if(forwardDistance == 0) {
+        forwardDistance = 20;
+      }
 
-  float forwardDistance = getDistance(forwardSonar);
+      Serial.print("Forward distance: ");
+      Serial.println(forwardDistance);
 
-  if(forwardDistance == 0) {
-    reverse();
-    delay(random(600));
-    return;
-  }
-
-  Serial.print("Forward distance: ");
-  Serial.println(forwardDistance);
-
-  // Move the Rover
-  if(prevDistance == -1){
-    prevDistance = forwardDistance;
-  }  
-  if(forwardDistance > 20){
-    forward(forwardDistance);
-    //forward();
-    prevDistance = forwardDistance;
-  } 
-  else {
-    if (random(2) == 0) { 
-      reverse();
+      // Move the Rover
+      if(prevDistance == -1){
+        prevDistance = forwardDistance;
+      }  
+      if(forwardDistance > 15){
+        _motion = stateForward;
+        forward(forwardDistance);
+        prevDistance = forwardDistance;
+      } 
+      else {
+        _motion = stateReverse;
+        reversingTime = random(1000);
+        reverseStartTime = millis();
+      } 
+      break;
     }
-    // brake();
+  case stateReverse: 
+    {
+      Serial.println("Reversing...");
+      if(millis() - reverseStartTime < reversingTime){
+        reverse();
+        break; // continue reversing
+      } 
+      else {
+        float leftDistance = getDistance(leftSonar);
+        float rightDistance = getDistance(rightSonar);
 
-    int leftDistance = getDistance(leftSonar);
-    int rightDistance = getDistance(rightSonar);
-
-    // randomly turn right or left
-    if(leftDistance > rightDistance){
-      turnLeft(); 
-    } 
-    else if (leftDistance < rightDistance){
-      turnRight(); 
-    } 
-    else {
-      randomTurn();
+        turnTime = random(1000);
+        turnStartTime = millis();
+        // Decide whether to turn right or left
+        if(leftDistance > rightDistance){
+          _motion = stateLeftTurn;
+        } 
+        else if (leftDistance < rightDistance){
+          _motion = stateRightTurn;
+        } 
+        else { // Random turn
+          if (random(2) == 0) {
+            _motion = stateLeftTurn;
+          } 
+          else {
+            _motion = stateRightTurn;
+          }
+        }
+      }
+      break;
     }
-
+  case stateLeftTurn:
+    {
+      Serial.println("Turning left...");
+      if(millis() - turnStartTime < turnTime){
+        turnLeft();
+      } 
+      else {
+        _motion = stateForward;
+      }
+      break;
+    }
+  case stateRightTurn:
+    {
+      Serial.println("Turning right...");
+      if(millis() - turnStartTime < turnTime){
+        turnRight();
+      } 
+      else {
+        _motion = stateForward;
+      }
+      break;
+    }
+  case stateStopped: 
+    {
+      Serial.println("Stopped");
+      _motion = stateForward;
+      break;
+    }
+  default:
+    break;
   }
 }
 
 float getDistance(NewPing &sonar){
-   int val = sonar.ping_median()/US_ROUNDTRIP_CM;
-   Serial.println(val);
-   return val;
+  //  return sonar.ping_median(10)/US_ROUNDTRIP_CM;
+  return sonar.ping_cm();
 }
 
 void randomTurn(){
@@ -114,13 +166,12 @@ void forward(){
   rightMotor.setSpeed(TOP_SPEED);
   leftMotor.run(FORWARD);
   rightMotor.run(FORWARD); 
-  delay(30);
 }
 
 void forward(int currentDistance){
   // start slow and increase speed
   Serial.println("Forward...");
-  if(currentSpeed == 0){
+  /*if(currentSpeed == 0){
     currentSpeed = MIN_SPEED; 
   }
   if(currentDistance > 40){ // increase speed
@@ -138,8 +189,10 @@ void forward(int currentDistance){
     if(currentSpeed > MIN_SPEED){
       currentSpeed -= 10;
     }
-  }
-  //currentSpeed = 80;
+  }*/
+
+  // TODO: temporarilly setting to max speed
+  currentSpeed = TOP_SPEED;
   Serial.print("Current speed: ");
   Serial.println(currentSpeed);
 
@@ -150,12 +203,10 @@ void forward(int currentDistance){
 }
 
 void reverse(){
-  //  Serial.println("Reverse...");
   leftMotor.setSpeed(REVERSE_SPEED);
   rightMotor.setSpeed(REVERSE_SPEED);
   leftMotor.run(BACKWARD);
   rightMotor.run(BACKWARD);
-  delay(random(800));
 }
 
 void brake(){
@@ -174,19 +225,43 @@ void turnRight(){
   turn(rightMotor, leftMotor);
 }
 
-void turn(AF_DCMotor &leftMotor, AF_DCMotor &rightMotor){
-  leftMotor.setSpeed(TURNING_SPEED);
-  rightMotor.setSpeed(TURNING_SPEED - 50);
-  leftMotor.run(FORWARD);
-  rightMotor.run(BACKWARD);
-  while(true){
-    int forwardDistance = forwardSonar.ping_cm();
-    if(forwardDistance > 15){
-      break;
-    } 
-  }
+void turn(AF_DCMotor &motor1, AF_DCMotor &motor2){
+  /*int forwardDistance = getDistance(forwardSonar);
+  if(forwardDistance > 20){
+    _motion = stateForward;
+    return;
+  } */
+  motor1.setSpeed(TURNING_SPEED);
+  motor2.setSpeed(TURNING_SPEED - 50);
+  //motor2.setSpeed(TURNING_SPEED);
+  motor1.run(FORWARD);
+  motor2.run(BACKWARD);
+  /*while(true){
+   int forwardDistance = getDistance(forwardSonar);
+   if(forwardDistance > 20){
+   break;
+   } 
+   }*/
   //delay(random(600));
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
