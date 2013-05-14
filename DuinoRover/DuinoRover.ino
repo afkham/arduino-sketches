@@ -10,15 +10,10 @@
 #define MAX_DISTANCE 200 // Maximum distance we want to ping for (in centimeters). Maximum sensor distance is rated at 400-500cm.
 
 #define MODERATE_SPEED 200
-#define REVERSE_SPEED  180
+#define REVERSE_SPEED  200
 #define TURNING_SPEED 255
 #define TOP_SPEED  255
 #define MIN_SPEED  125
-
-#define SONAR_NUM     3 // Number or sensors.
-#define PING_INTERVAL 50 // Milliseconds between sensor pings (29ms is about the min to avoid cross-sensor echo).
-
-#define INVALID_DISTANCE -1
 
 NewPing forwardSonar(14,15, MAX_DISTANCE); // Forward sonar
 NewPing leftSonar(16,17, MAX_DISTANCE); // Left sonar
@@ -53,10 +48,28 @@ int reversingTime;
 long turnStartTime = -1;
 long turnTime;
 
+boolean autoMode = true;
 void loop()
 {
+  if (BTSerial.available() > 0){
+    char ch = BTSerial.read();
+    if(ch == 'A'){
+       autoMode = !autoMode; 
+    }
+  }
+  if(autoMode){
+    runAutoMode();
+  } else {
+    runManualMode();
+  }
+}
 
-  switch(_motion){
+void runManualMode(){
+  
+}
+
+void runAutoMode(){
+    switch(_motion){
   case stateForward:
     { 
       float forwardDistance = getDistance(forwardSonar);
@@ -78,7 +91,7 @@ void loop()
       } 
       else {
         _motion = stateReverse;
-        reversingTime = random(1000);
+        reversingTime = random(600);
         reverseStartTime = millis();
       } 
       break;
@@ -90,27 +103,10 @@ void loop()
         reverse();
         break; // continue reversing
       } 
-      else {
-        float leftDistance = getDistance(leftSonar);
-        float rightDistance = getDistance(rightSonar);
-
-        turnTime = random(1000);
+      else {  
+        turnTime = random(600);
         turnStartTime = millis();
-        // Decide whether to turn right or left
-        if(leftDistance > rightDistance){
-          _motion = stateLeftTurn;
-        } 
-        else if (leftDistance < rightDistance){
-          _motion = stateRightTurn;
-        } 
-        else { // Random turn
-          if (random(2) == 0) {
-            _motion = stateLeftTurn;
-          } 
-          else {
-            _motion = stateRightTurn;
-          }
-        }
+        makeTurnDecision();
       }
       break;
     }
@@ -121,7 +117,14 @@ void loop()
         turnLeft();
       } 
       else {
-        _motion = stateForward;
+        float forwardDistance = getDistance(forwardSonar);
+        if(forwardDistance > 15){
+          _motion = stateForward;
+        } 
+        else {
+          turnTime = random(500);
+          turnStartTime = millis();
+        }
       }
       break;
     }
@@ -132,7 +135,14 @@ void loop()
         turnRight();
       } 
       else {
-        _motion = stateForward;
+        float forwardDistance = getDistance(forwardSonar);
+        if(forwardDistance > 15){
+          _motion = stateForward;
+        } 
+        else {
+          turnTime = random(500);
+          turnStartTime = millis();
+        }
       }
       break;
     }
@@ -147,9 +157,29 @@ void loop()
   }
 }
 
+void makeTurnDecision(){
+  float leftDistance = getDistance(leftSonar);
+  float rightDistance = getDistance(rightSonar);
+  // Decide whether to turn right or left
+  if(leftDistance > rightDistance){
+    _motion = stateLeftTurn;
+  } 
+  else if (leftDistance < rightDistance){
+    _motion = stateRightTurn;
+  } 
+  else { // Random turn
+    if (random(2) == 0) {
+      _motion = stateLeftTurn;
+    } 
+    else {
+      _motion = stateRightTurn;
+    }
+  }
+}
+
 float getDistance(NewPing &sonar){
-  //  return sonar.ping_median(10)/US_ROUNDTRIP_CM;
-  return sonar.ping_cm();
+  return sonar.ping_median(5)/US_ROUNDTRIP_CM;
+  //return sonar.ping_cm();
 }
 
 void randomTurn(){
@@ -172,24 +202,24 @@ void forward(int currentDistance){
   // start slow and increase speed
   Serial.println("Forward...");
   /*if(currentSpeed == 0){
-    currentSpeed = MIN_SPEED; 
-  }
-  if(currentDistance > 40){ // increase speed
-    if(currentSpeed < MODERATE_SPEED){
-      if(currentSpeed < MIN_SPEED + 10){
-        currentSpeed += 5; 
-      } 
-      else {
-        currentSpeed += 2;
-      }
-    }
-    // currentSpeed = MODERATE_SPEED;
-  } 
-  else { // reduce speed
-    if(currentSpeed > MIN_SPEED){
-      currentSpeed -= 10;
-    }
-  }*/
+   currentSpeed = MIN_SPEED; 
+   }
+   if(currentDistance > 40){ // increase speed
+   if(currentSpeed < MODERATE_SPEED){
+   if(currentSpeed < MIN_SPEED + 10){
+   currentSpeed += 5; 
+   } 
+   else {
+   currentSpeed += 2;
+   }
+   }
+   // currentSpeed = MODERATE_SPEED;
+   } 
+   else { // reduce speed
+   if(currentSpeed > MIN_SPEED){
+   currentSpeed -= 10;
+   }
+   }*/
 
   // TODO: temporarilly setting to max speed
   currentSpeed = TOP_SPEED;
@@ -226,24 +256,13 @@ void turnRight(){
 }
 
 void turn(AF_DCMotor &motor1, AF_DCMotor &motor2){
-  /*int forwardDistance = getDistance(forwardSonar);
-  if(forwardDistance > 20){
-    _motion = stateForward;
-    return;
-  } */
   motor1.setSpeed(TURNING_SPEED);
   motor2.setSpeed(TURNING_SPEED - 50);
-  //motor2.setSpeed(TURNING_SPEED);
   motor1.run(FORWARD);
   motor2.run(BACKWARD);
-  /*while(true){
-   int forwardDistance = getDistance(forwardSonar);
-   if(forwardDistance > 20){
-   break;
-   } 
-   }*/
-  //delay(random(600));
 }
+
+
 
 
 
