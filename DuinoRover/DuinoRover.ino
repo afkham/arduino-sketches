@@ -7,7 +7,7 @@
 
 #define TRIGGER_PIN  14  // Arduino pin tied to trigger pin on the ultrasonic sensor.
 #define ECHO_PIN     15  // Arduino pin tied to echo pin on the ultrasonic sensor.
-#define MAX_DISTANCE 200 // Maximum distance we want to ping for (in centimeters). Maximum sensor distance is rated at 400-500cm.
+#define MAX_DISTANCE 500 // Maximum distance we want to ping for (in centimeters). Maximum sensor distance is rated at 400-500cm.
 
 #define MODERATE_SPEED 200
 #define REVERSE_SPEED  200
@@ -53,23 +53,60 @@ void loop()
 {
   if (BTSerial.available() > 0){
     char ch = BTSerial.read();
-    if(ch == 'A'){
-       autoMode = !autoMode; 
+    Serial.println(ch);
+    if(ch == 'a'){
+      brake();
+      _motion = stateStopped;
+      autoMode = !autoMode; 
+      Serial.print("Auto mode: ");
+      Serial.println(autoMode);
     }
   }
   if(autoMode){
     runAutoMode();
-  } else {
+  } 
+  else {
     runManualMode();
   }
 }
 
 void runManualMode(){
-  
+  if (BTSerial.available() > 0){
+    char ch = BTSerial.read();
+    switch (ch) {
+    case 'U': // up
+      Serial.println("Moving forward...");
+      _motion = stateForward;
+      forward();
+      break;
+    case 'D': // down
+      Serial.println("Moving backward...");
+      _motion = stateReverse;
+      reverse();
+      break;
+    case 'L': // left
+      Serial.println("Turning left...");
+      _motion = stateLeftTurn;
+      turnLeft();
+      break;
+    case 'R': // right
+      Serial.println("Turning right...");
+      _motion = stateRightTurn;
+      turnRight();
+      break;
+    case 'C':
+      Serial.println("Stopped");
+      _motion = stateStopped;
+      brake();
+      break;
+    default:
+      break;
+    }
+  }
 }
 
 void runAutoMode(){
-    switch(_motion){
+  switch(_motion){
   case stateForward:
     { 
       float forwardDistance = getDistance(forwardSonar);
@@ -90,6 +127,7 @@ void runAutoMode(){
         prevDistance = forwardDistance;
       } 
       else {
+        brake();
         _motion = stateReverse;
         reversingTime = random(600);
         reverseStartTime = millis();
@@ -104,6 +142,7 @@ void runAutoMode(){
         break; // continue reversing
       } 
       else {  
+        brake();
         turnTime = random(600);
         turnStartTime = millis();
         makeTurnDecision();
@@ -119,6 +158,7 @@ void runAutoMode(){
       else {
         float forwardDistance = getDistance(forwardSonar);
         if(forwardDistance > 15){
+          brake();
           _motion = stateForward;
         } 
         else {
@@ -137,6 +177,7 @@ void runAutoMode(){
       else {
         float forwardDistance = getDistance(forwardSonar);
         if(forwardDistance > 15){
+          brake();
           _motion = stateForward;
         } 
         else {
@@ -261,6 +302,8 @@ void turn(AF_DCMotor &motor1, AF_DCMotor &motor2){
   motor1.run(FORWARD);
   motor2.run(BACKWARD);
 }
+
+
 
 
 
