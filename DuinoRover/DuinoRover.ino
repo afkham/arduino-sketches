@@ -22,6 +22,11 @@ NewPing rightSonar(18,19, MAX_DISTANCE);  // Right sonar
 AF_DCMotor leftMotor(3);
 AF_DCMotor rightMotor(4);
 
+#define MOVING_AVG_SAMPLES 3
+int forwardDistances[MOVING_AVG_SAMPLES] = {
+  -1, -1, -1};
+int forwardDistanceIndex = 0;
+
 enum motion{
   stateForward,stateReverse,stateLeftTurn,stateRightTurn,stateStopped};
 motion _motion;
@@ -48,11 +53,14 @@ int reversingTime;
 long turnStartTime = -1;
 long turnTime;
 
+long forwardDistanceStartTime = -1;
+
 boolean autoMode = true;
 void loop()
 {
+  char ch;
   if (BTSerial.available() > 0){
-    char ch = BTSerial.read();
+    ch = BTSerial.read();
     Serial.println(ch);
     if(ch == 'a'){
       brake();
@@ -66,65 +74,78 @@ void loop()
     runAutoMode();
   } 
   else {
-    runManualMode();
+    runManualMode(ch);
   }
 }
 
-void runManualMode(){
-  if (BTSerial.available() > 0){
-    char ch = BTSerial.read();
-    switch (ch) {
-    case 'U': // up
-      Serial.println("Moving forward...");
-      _motion = stateForward;
-      forward();
-      break;
-    case 'D': // down
-      Serial.println("Moving backward...");
-      _motion = stateReverse;
-      reverse();
-      break;
-    case 'L': // left
-      Serial.println("Turning left...");
-      _motion = stateLeftTurn;
-      turnLeft();
-      break;
-    case 'R': // right
-      Serial.println("Turning right...");
-      _motion = stateRightTurn;
-      turnRight();
-      break;
-    case 'C':
-      Serial.println("Stopped");
-      _motion = stateStopped;
-      brake();
-      break;
-    default:
-      break;
-    }
+void runManualMode(char ch){
+  switch (ch) {
+  case 'U': // up
+    Serial.println("Moving forward...");
+    _motion = stateForward;
+    forward();
+    break;
+  case 'D': // down
+    Serial.println("Moving backward...");
+    _motion = stateReverse;
+    reverse();
+    break;
+  case 'L': // left
+    Serial.println("Turning left...");
+    _motion = stateLeftTurn;
+    turnLeft();
+    break;
+  case 'R': // right
+    Serial.println("Turning right...");
+    _motion = stateRightTurn;
+    turnRight();
+    break;
+  case 'C':
+    Serial.println("Stopped");
+    _motion = stateStopped;
+    brake();
+    break;
+  default:
+    break;
   }
 }
+
+float _forwardDistance;
 
 void runAutoMode(){
   switch(_motion){
   case stateForward:
     { 
-      float forwardDistance = getDistance(forwardSonar);
-      if(forwardDistance == 0) {
-        forwardDistance = 20;
+      /*forwardDistances[forwardDistanceIndex] = getDistance(forwardSonar);
+       forwardDistanceIndex++;
+       if(forwardDistanceIndex > MOVING_AVG_SAMPLES - 1){
+       forwardDistanceIndex = 0;
+       }
+       float forwardDistance = getMovingAverage();*/
+
+      //float forwardDistance;// = getDistance(forwardSonar);
+      if(millis() - forwardDistanceStartTime >= 30){
+        _forwardDistance = getDistance(forwardSonar);
+        Serial.println("====================================================");
+        forwardDistanceStartTime = millis();
+        if(_forwardDistance == 0) {
+          _forwardDistance = 20;
+        }
       }
 
-      Serial.print("Forward distance: ");
-      Serial.println(forwardDistance);
+      //      Serial.print("Forward distance: ");
+      //      Serial.println(_forwardDistance);
 
       // Move the Rover
       if(prevDistance == -1){
-        prevDistance = forwardDistance;
+        prevDistance = _forwardDistance;
       }  
-      if(forwardDistance > 15){
+      if(_forwardDistance > 10){
         _motion = stateForward;
-        forward(forwardDistance);
-        prevDistance = forwardDistance;
+        Serial.print("Forward distance: ");
+        Serial.println(_forwardDistance);
+        forward();
+        //prevDistance = forwardDistance;
       } 
       else {
         brake();
@@ -136,10 +157,9 @@ void runAutoMode(){
     }
   case stateReverse: 
     {
-      Serial.println("Reversing...");
       if(millis() - reverseStartTime < reversingTime){
-        reverse();
-        break; // continue reversing
+        Serial.println("Reversing...");
+        reverse(); // continue reversing 
       } 
       else {  
         brake();
@@ -151,15 +171,16 @@ void runAutoMode(){
     }
   case stateLeftTurn:
     {
-      Serial.println("Turning left...");
       if(millis() - turnStartTime < turnTime){
+        Serial.println("Turning left...");
         turnLeft();
       } 
       else {
-        float forwardDistance = getDistance(forwardSonar);
-        if(forwardDistance > 15){
+        _forwardDistance = getDistance(forwardSonar);
+        if(_forwardDistance > 10){
           brake();
           _motion = stateForward;
+          forwardDistanceStartTime = millis();
         } 
         else {
           turnTime = random(500);
@@ -170,15 +191,16 @@ void runAutoMode(){
     }
   case stateRightTurn:
     {
-      Serial.println("Turning right...");
       if(millis() - turnStartTime < turnTime){
+        Serial.println("Turning right...");
         turnRight();
       } 
       else {
-        float forwardDistance = getDistance(forwardSonar);
-        if(forwardDistance > 15){
+        _forwardDistance = getDistance(forwardSonar);
+        if(_forwardDistance > 10){
           brake();
           _motion = stateForward;
+          forwardDistanceStartTime = millis();
         } 
         else {
           turnTime = random(500);
@@ -191,6 +213,8 @@ void runAutoMode(){
     {
       Serial.println("Stopped");
       _motion = stateForward;
+      _forwardDistance = forwardSonar.ping_median(10)/US_ROUNDTRIP_CM;
+      forwardDistanceStartTime = millis();
       break;
     }
   default:
@@ -198,9 +222,32 @@ void runAutoMode(){
   }
 }
 
+float getMovingAverage(){
+  float total;
+  int ommittedPositions = 0;
+  for(int i = 0; i < MOVING_AVG_SAMPLES; i++){
+    if(forwardDistances[i] != -1){
+      total += forwardDistances[i];
+    } 
+    else {
+      ommittedPositions++;
+    }
+  }
+  return total/(MOVING_AVG_SAMPLES-ommittedPositions);
+}
+
 void makeTurnDecision(){
   float leftDistance = getDistance(leftSonar);
   float rightDistance = getDistance(rightSonar);
+
+  Serial.print("-------- Left distance:"); 
+  Serial.println(leftDistance);
+  Serial.print("++++++++ Right distance:"); 
+  Serial.println(rightDistance);
+
+  leftDistance = (leftDistance != 0) ? leftDistance : 15;
+  rightDistance = (rightDistance != 0) ? rightDistance : 15;
+
   // Decide whether to turn right or left
   if(leftDistance > rightDistance){
     _motion = stateLeftTurn;
@@ -219,8 +266,8 @@ void makeTurnDecision(){
 }
 
 float getDistance(NewPing &sonar){
-  return sonar.ping_median(5)/US_ROUNDTRIP_CM;
-  //return sonar.ping_cm();
+  //return sonar.ping_median(3)/US_ROUNDTRIP_CM;
+  return sonar.ping_cm();
 }
 
 void randomTurn(){
@@ -302,6 +349,14 @@ void turn(AF_DCMotor &motor1, AF_DCMotor &motor2){
   motor1.run(FORWARD);
   motor2.run(BACKWARD);
 }
+
+
+
+
+
+
+
+
 
 
 
