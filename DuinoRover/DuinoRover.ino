@@ -1,6 +1,13 @@
+/*
+Arduino powered autonomous robot with bluetooth manual control mode in addition to the autonomous mode
+ 
+ */
+
 #include <AFMotor.h>
 #include <SoftwareSerial.h>
 #include <NewPing.h>
+
+#define LOG_ENABLED true
 
 #define BT_TX_PIN 3
 #define BT_RX_PIN 10
@@ -35,10 +42,10 @@ SoftwareSerial BTSerial(BT_RX_PIN, BT_TX_PIN);
 
 void setup()
 {
-  Serial.begin(115200);
+  if(LOG_ENABLED) Serial.begin(115200);
   BTSerial.begin(9600);
   forward();
-  delay(100);
+  delay(500);
   _motion = stateStopped;
 }
 
@@ -61,13 +68,17 @@ void loop()
   char ch;
   if (BTSerial.available() > 0){
     ch = BTSerial.read();
-    Serial.println(ch);
+    if(LOG_ENABLED){
+      Serial.println(ch);
+    }
     if(ch == 'a'){
       brake();
       _motion = stateStopped;
       autoMode = !autoMode; 
-      Serial.print("Auto mode: ");
-      Serial.println(autoMode);
+      if(LOG_ENABLED){
+        Serial.print("Auto mode: ");
+        Serial.println(autoMode);
+      }
     }
   }
   if(autoMode){
@@ -81,27 +92,27 @@ void loop()
 void runManualMode(char ch){
   switch (ch) {
   case 'U': // up
-    Serial.println("Moving forward...");
+    if(LOG_ENABLED) Serial.println("Moving forward...");
     _motion = stateForward;
     forward();
     break;
   case 'D': // down
-    Serial.println("Moving backward...");
+    if(LOG_ENABLED) Serial.println("Moving backward...");
     _motion = stateReverse;
     reverse();
     break;
   case 'L': // left
-    Serial.println("Turning left...");
+    if(LOG_ENABLED) Serial.println("Turning left...");
     _motion = stateLeftTurn;
     turnLeft();
     break;
   case 'R': // right
-    Serial.println("Turning right...");
+    if(LOG_ENABLED) Serial.println("Turning right...");
     _motion = stateRightTurn;
     turnRight();
     break;
   case 'C':
-    Serial.println("Stopped");
+    if(LOG_ENABLED) Serial.println("Stopped");
     _motion = stateStopped;
     brake();
     break;
@@ -111,6 +122,8 @@ void runManualMode(char ch){
 }
 
 float _forwardDistance;
+
+boolean _stateChanged;
 
 void runAutoMode(){
   switch(_motion){
@@ -126,15 +139,12 @@ void runAutoMode(){
       //float forwardDistance;// = getDistance(forwardSonar);
       if(millis() - forwardDistanceStartTime >= 30){
         _forwardDistance = getDistance(forwardSonar);
-        Serial.println("====================================================");
+        //if(LOG_ENABLED) Serial.println("====================================================");
         forwardDistanceStartTime = millis();
         if(_forwardDistance == 0) {
           _forwardDistance = 20;
         }
       }
-
-      //      Serial.print("Forward distance: ");
-      //      Serial.println(_forwardDistance);
 
       // Move the Rover
       if(prevDistance == -1){
@@ -142,14 +152,20 @@ void runAutoMode(){
       }  
       if(_forwardDistance > 10){
         _motion = stateForward;
-        Serial.print("Forward distance: ");
-        Serial.println(_forwardDistance);
-        forward();
+        if(_stateChanged){
+          if(LOG_ENABLED){
+            Serial.print("Forward distance: ");
+            Serial.println(_forwardDistance);
+          }
+          forward();
+          _stateChanged = false;
+        }
         //prevDistance = forwardDistance;
       } 
       else {
         brake();
         _motion = stateReverse;
+        _stateChanged = true;
         reversingTime = random(600);
         reverseStartTime = millis();
       } 
@@ -158,8 +174,11 @@ void runAutoMode(){
   case stateReverse: 
     {
       if(millis() - reverseStartTime < reversingTime){
-        Serial.println("Reversing...");
-        reverse(); // continue reversing 
+        if(_stateChanged){
+          if(LOG_ENABLED) Serial.println("Reversing...");
+          reverse(); // continue reversing 
+          _stateChanged = false;
+        }
       } 
       else {  
         brake();
@@ -172,14 +191,18 @@ void runAutoMode(){
   case stateLeftTurn:
     {
       if(millis() - turnStartTime < turnTime){
-        Serial.println("Turning left...");
-        turnLeft();
+        if(_stateChanged){
+          if(LOG_ENABLED) Serial.println("Turning left...");
+          turnLeft();
+          _stateChanged = false;
+        }
       } 
       else {
         _forwardDistance = getDistance(forwardSonar);
         if(_forwardDistance > 10){
           brake();
           _motion = stateForward;
+          _stateChanged = true;
           forwardDistanceStartTime = millis();
         } 
         else {
@@ -192,14 +215,18 @@ void runAutoMode(){
   case stateRightTurn:
     {
       if(millis() - turnStartTime < turnTime){
-        Serial.println("Turning right...");
-        turnRight();
+        if(_stateChanged){
+          if(LOG_ENABLED) Serial.println("Turning right...");
+          turnRight();
+          _stateChanged = false;
+        }
       } 
       else {
         _forwardDistance = getDistance(forwardSonar);
         if(_forwardDistance > 10){
           brake();
           _motion = stateForward;
+          _stateChanged = true;
           forwardDistanceStartTime = millis();
         } 
         else {
@@ -211,8 +238,9 @@ void runAutoMode(){
     }
   case stateStopped: 
     {
-      Serial.println("Stopped");
+      if(LOG_ENABLED) Serial.println("Stopped");
       _motion = stateForward;
+      _stateChanged = true;
       _forwardDistance = forwardSonar.ping_median(10)/US_ROUNDTRIP_CM;
       forwardDistanceStartTime = millis();
       break;
@@ -240,10 +268,12 @@ void makeTurnDecision(){
   float leftDistance = getDistance(leftSonar);
   float rightDistance = getDistance(rightSonar);
 
-  Serial.print("-------- Left distance:"); 
-  Serial.println(leftDistance);
-  Serial.print("++++++++ Right distance:"); 
-  Serial.println(rightDistance);
+  if(LOG_ENABLED){
+    Serial.print("-------- Left distance:"); 
+    Serial.println(leftDistance);
+    Serial.print("++++++++ Right distance:"); 
+    Serial.println(rightDistance);
+  }
 
   leftDistance = (leftDistance != 0) ? leftDistance : 15;
   rightDistance = (rightDistance != 0) ? rightDistance : 15;
@@ -263,6 +293,7 @@ void makeTurnDecision(){
       _motion = stateRightTurn;
     }
   }
+  _stateChanged = true;
 }
 
 float getDistance(NewPing &sonar){
@@ -311,8 +342,10 @@ void forward(int currentDistance){
 
   // TODO: temporarilly setting to max speed
   currentSpeed = TOP_SPEED;
-  Serial.print("Current speed: ");
-  Serial.println(currentSpeed);
+  if(LOG_ENABLED){
+    Serial.print("Current speed: ");
+    Serial.println(currentSpeed);
+  }
 
   leftMotor.setSpeed(currentSpeed);
   rightMotor.setSpeed(currentSpeed);
@@ -349,6 +382,11 @@ void turn(AF_DCMotor &motor1, AF_DCMotor &motor2){
   motor1.run(FORWARD);
   motor2.run(BACKWARD);
 }
+
+
+
+
+
 
 
 
