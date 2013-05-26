@@ -5,7 +5,7 @@
 #include <EEPROM.h>
 #include <Bounce.h>
 #include "RTClib.h"
-#include "pitches.h"
+#include <pitches.h>
 #include <dht11.h>
 
 // Shift register pins
