@@ -19,15 +19,14 @@ void setup()
 {
   // initialize the serial communications:
   Serial.begin(9600);
-  pinMode(14, OUTPUT);
 
   pinMode(signal, INPUT);
   pinMode(sw, INPUT);
   pinMode(led, OUTPUT);
   pinMode(onLED, OUTPUT);
   pinMode(offLED, OUTPUT);
-  digitalWrite(led, 0);
-  digitalWrite(sw, 0);
+  pinMode(relay, OUTPUT);
+  digitalWrite(led, LOW);
 }
 
 int noteIndex = 0;
@@ -64,11 +63,11 @@ void loop(){
         }
       }
       digitalWrite(led, HIGH);
-      digitalWrite(relay, HIGH);
+      digitalWrite(relay, LOW);
     } 
     else {
       digitalWrite(led, LOW);
-      digitalWrite(relay, LOW);
+      digitalWrite(relay, HIGH);
       noTone(tonePin);
     }    
   } 
