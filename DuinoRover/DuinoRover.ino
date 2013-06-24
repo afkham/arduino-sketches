@@ -4,6 +4,7 @@ Arduino powered autonomous robot with bluetooth manual control mode in addition 
  */
 
 #include <AFMotor.h>
+#include <Servo.h> 
 #include <SoftwareSerial.h>
 #include <NewPing.h>
 
@@ -22,12 +23,17 @@ Arduino powered autonomous robot with bluetooth manual control mode in addition 
 #define TOP_SPEED  255
 #define MIN_SPEED  125
 
+#define SERVO_MID_POSITION 80
+#define SERVO_LEFT_POSITION 130
+#define SERVO_RIGHT_POSITION 30
+
 NewPing forwardSonar(14,15, MAX_DISTANCE); // Forward sonar
 NewPing leftSonar(16,17, MAX_DISTANCE); // Left sonar
 NewPing rightSonar(18,19, MAX_DISTANCE);  // Right sonar
 
 AF_DCMotor leftMotor(3);
 AF_DCMotor rightMotor(4);
+Servo myservo;  // create servo object to control a servo 
 
 #define MOVING_AVG_SAMPLES 3
 int forwardDistances[MOVING_AVG_SAMPLES] = {
@@ -38,17 +44,57 @@ enum motion{
   stateForward,stateReverse,stateLeftTurn,stateRightTurn,stateStopped};
 motion _motion;
 
+enum ServoPosition{
+  right, rightCenter, leftCenter, left};
+ServoPosition servoCurrentPosition = right;
+
 SoftwareSerial BTSerial(BT_RX_PIN, BT_TX_PIN);
+
+unsigned int forwardFrontDistance = -1;
+unsigned int forwardLeftDistance = -1;
+unsigned int forwardRightDistance = -1;
 
 void setup()
 {
   if(LOG_ENABLED) Serial.begin(115200);
   BTSerial.begin(9600);
+  myservo.attach(9);  // attaches the servo on pin 9 to the servo object 
+  /*myservo.write(SERVO_MID_POSITION);  
+   delay(500);
+   forwardFrontDistance = getDistance(forwardSonar);
+   
+   myservo.write(SERVO_LEFT_POSITION);
+   delay(500);
+   forwardLeftDistance = getDistance(forwardSonar);
+   
+   myservo.write(SERVO_RIGHT_POSITION);
+   delay(500);
+   forwardRightDistance = getDistance(forwardSonar);
+   
+   myservo.write(SERVO_MID_POSITION);  
+   delay(500);*/
+  calculateForwardDistances();
   forward();
-  delay(500);
+  delay(1000);
   _motion = stateStopped;
 }
 
+void calculateForwardDistances(){
+  myservo.write(SERVO_MID_POSITION);  
+  delay(100);
+  forwardFrontDistance = getDistance(forwardSonar);
+
+  myservo.write(SERVO_LEFT_POSITION);
+  delay(100);
+  forwardLeftDistance = getDistance(forwardSonar);
+
+  myservo.write(SERVO_RIGHT_POSITION);
+  delay(100);
+  forwardRightDistance = getDistance(forwardSonar);
+
+  myservo.write(SERVO_MID_POSITION);  
+  delay(50);
+}
 
 int prevDistance = 0;
 int currentSpeed = 0;
@@ -125,7 +171,7 @@ float _forwardDistance;
 
 boolean _stateChanged;
 
-void runAutoMode(){
+void runAutoMode(){    
   switch(_motion){
   case stateForward:
     { 
@@ -138,19 +184,48 @@ void runAutoMode(){
 
       //float forwardDistance;// = getDistance(forwardSonar);
       if(millis() - forwardDistanceStartTime >= 30){
+        int servoPosition = changeServoPosition();
+        myservo.write(servoPosition);
+        delay(50);
         _forwardDistance = getDistance(forwardSonar);
-        //if(LOG_ENABLED) Serial.println("====================================================");
-        forwardDistanceStartTime = millis();
         if(_forwardDistance == 0) {
           _forwardDistance = 20;
         }
+        switch(servoCurrentPosition){
+        case right:
+          {
+            forwardRightDistance = _forwardDistance;
+            break;
+          }
+        case left:
+          {
+            forwardLeftDistance = _forwardDistance;
+            break;
+          }
+        case leftCenter: 
+        case rightCenter:
+          {
+            forwardFrontDistance = _forwardDistance;
+          } 
+        }
+
+        forwardDistanceStartTime = millis();      
       }
 
       // Move the Rover
-      if(prevDistance == -1){
-        prevDistance = _forwardDistance;
-      }  
-      if(_forwardDistance > 10){
+      /*if(prevDistance == -1){
+       prevDistance = _forwardDistance;
+       } */
+      if(LOG_ENABLED){
+            Serial.print("FFD: ");
+            Serial.print(forwardFrontDistance);
+            Serial.print(", FLD: ");
+            Serial.print(forwardRightDistance);
+            Serial.print(", FRD: ");
+            Serial.println(forwardRightDistance);
+      } 
+      if(forwardFrontDistance > 10 && forwardRightDistance > 10 && forwardRightDistance > 10){
+        //if(_forwardDistance > 10){
         _motion = stateForward;
         if(_stateChanged){
           if(LOG_ENABLED){
@@ -164,6 +239,7 @@ void runAutoMode(){
       } 
       else {
         brake();
+        forwardRightDistance = forwardLeftDistance = forwardFrontDistance = 20;
         _motion = stateReverse;
         _stateChanged = true;
         reversingTime = random(600);
@@ -366,6 +442,7 @@ void brake(){
   leftMotor.run(BRAKE);
   rightMotor.run(BRAKE);
   currentSpeed = 0;
+  //calculateForwardDistances();
 }
 
 void turnLeft(){
@@ -379,9 +456,57 @@ void turnRight(){
 void turn(AF_DCMotor &motor1, AF_DCMotor &motor2){
   motor1.setSpeed(TURNING_SPEED);
   motor2.setSpeed(TURNING_SPEED - 50);
+  myservo.write(SERVO_MID_POSITION); 
   motor1.run(FORWARD);
   motor2.run(BACKWARD);
 }
+
+/*
+int getDistance(unsigned int position){
+ myservo.write(position); 
+ delay(500);                      // Wait 50ms between pings (about 20 pings/sec). 29ms should be the shortest delay between pings.
+ //  unsigned int uS = forwardSonar.ping(); // Send ping, get ping time in microseconds (uS).
+ //  Serial.print(uS / US_ROUNDTRIP_CM); // Convert ping time to distance in cm and print result (0 = outside set distance range)
+ //  Serial.println("cm");
+ }
+ */
+
+int changeServoPosition(){
+  switch(servoCurrentPosition){
+  case right:
+    {
+      servoCurrentPosition = rightCenter;
+      Serial.print("Right: ");
+      return SERVO_RIGHT_POSITION;
+    }
+  case left:
+    {
+      servoCurrentPosition = leftCenter;
+      Serial.print("Left: ");
+      return SERVO_LEFT_POSITION;
+    }
+  case leftCenter:
+    {
+      servoCurrentPosition = right;
+      Serial.print("Center: ");
+      return SERVO_MID_POSITION;
+    } 
+  case rightCenter:
+    {
+      servoCurrentPosition = left;
+      Serial.print("Center: ");
+      return SERVO_MID_POSITION;
+
+    } 
+  }
+
+}
+
+
+
+
+
+
 
 
 
