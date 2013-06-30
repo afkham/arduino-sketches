@@ -8,7 +8,7 @@ Arduino powered autonomous robot with bluetooth manual control mode in addition 
 #include <SoftwareSerial.h>
 #include <NewPing.h>
 
-#define LOG_ENABLED true
+#define LOG_ENABLED false
 
 #define BT_TX_PIN 3
 #define BT_RX_PIN 10
@@ -24,8 +24,8 @@ Arduino powered autonomous robot with bluetooth manual control mode in addition 
 #define MIN_SPEED  125
 
 #define SERVO_MID_POSITION 80
-#define SERVO_LEFT_POSITION 130
-#define SERVO_RIGHT_POSITION 30
+#define SERVO_LEFT_POSITION 140
+#define SERVO_RIGHT_POSITION 20
 
 NewPing forwardSonar(14,15, MAX_DISTANCE); // Forward sonar
 NewPing leftSonar(16,17, MAX_DISTANCE); // Left sonar
@@ -74,7 +74,7 @@ void setup()
    myservo.write(SERVO_MID_POSITION);  
    delay(500);*/
   calculateForwardDistances();
-  forward();
+  //forward();
   delay(1000);
   _motion = stateStopped;
 }
