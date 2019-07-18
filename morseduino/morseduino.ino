@@ -59,7 +59,7 @@ const char MORSE_QUESTION_MARK[] = "..__..";
     Pause between characters = Dot length x 3
     Pause between words = Dot length x 7
 */
-const int dotLen = 80;     // length of the morse code 'dot'
+const int dotLen = 100;     // length of the morse code 'dot'
 const int dashLen = dotLen * 3;    // length of the morse code 'dash'
 const int elemPause = dotLen;  // length of the pause between elements of a character
 const int charSpacing = dotLen * 4;     // length of the spaces between characters
@@ -106,6 +106,7 @@ void loop() {
 
 int symbolStart = -1;
 int lastSymbolReceivedAt = -1;
+int lastCharReceivedAt = -1;
 //int charStart = -1;
 //int wordStart = -1;
 
@@ -140,15 +141,20 @@ void playOscillator() {
         }
         symbolStart = -1;
         lastSymbolReceivedAt = millis();
+        lastCharReceivedAt = -1;
       }
     }
   }
-  int now = millis();
-  if (buttonState == LOW && lastSymbolReceivedAt != -1 && now - lastSymbolReceivedAt > charSpacing) {
-    Serial.print(" ");
-    int diff = now - lastSymbolReceivedAt;
-    //Serial.println(diff);
-    lastSymbolReceivedAt = -1;
+  if (buttonState == LOW) {
+    int now = millis();
+    if (lastCharReceivedAt != -1 && now - lastCharReceivedAt > wordSpacing) {
+      Serial.print("/ ");
+      lastCharReceivedAt = -1;
+    } else if (lastSymbolReceivedAt != -1 && now - lastSymbolReceivedAt > charSpacing) {
+      Serial.print(" ");
+      lastSymbolReceivedAt = -1;
+      lastCharReceivedAt = millis();
+    } 
   }
   // save the reading. Next time through the loop, it'll be the lastButtonState:
   lastButtonState = reading;
