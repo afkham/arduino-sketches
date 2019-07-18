@@ -174,8 +174,9 @@ void playOscillator() {
       //TODO: Identify char in buffer and print it out
     } else if (lastSymbolReceivedAt != -1 && now - lastSymbolReceivedAt > charSpacing) {
       if (!garbageReceived) {
-        Serial.print(currentSymbolBuff);
-         Serial.print(" ");
+        // Serial.print(currentSymbolBuff);
+        //Serial.print(" ");
+        Serial.print(morseToChar(currentSymbolBuff));
       } else {
         Serial.print("# ");
         garbageReceived = false;
@@ -237,6 +238,106 @@ void playMorseSequence(String morseSequence) {
   morseSequence.toCharArray(morseCharSeq, morseSequence.length() + 1);
   for (int i = 0; i < sizeof(morseCharSeq) - 1; i++) {
     morseCharSeq[i] == '.' ? di() : dah();
+  }
+}
+
+int lengthof(char const str[]) {
+  int i = 0;
+  while (str[i] != '\0') {
+    i++;
+  }
+  return i;
+}
+
+bool isEqual(char ch1[], char const ch2[]) {
+  if (lengthof(ch1) != lengthof(ch2)) return false;
+  int i = 0;
+  while (ch1[i] != '\0' && ch2[i] != '\0') {
+    if (ch1[i] != ch2[i]) return false;
+    i++;
+  }
+  return true;
+}
+
+char morseToChar(char morseStr[]) {
+  if (isEqual(morseStr, MORSE_A)) {
+    return 'a';
+  } else if (isEqual(morseStr, MORSE_B)) {
+    return 'b';
+  } else if (isEqual(morseStr, MORSE_C)) {
+    return 'c';
+  } else if (isEqual(morseStr, MORSE_D)) {
+    return 'd';
+  } else if (isEqual(morseStr, MORSE_E)) {
+    return 'e';
+  } else if (isEqual(morseStr, MORSE_F)) {
+    return 'f';
+  } else if (isEqual(morseStr, MORSE_G)) {
+    return 'g';
+  } else if (isEqual(morseStr, MORSE_H)) {
+    return 'h';
+  } else if (isEqual(morseStr, MORSE_I)) {
+    return 'i';
+  } else if (isEqual(morseStr, MORSE_J)) {
+    return 'j';
+  } else if (isEqual(morseStr, MORSE_K)) {
+    return 'k';
+  } else if (isEqual(morseStr, MORSE_L)) {
+    return 'l';
+  } else if (isEqual(morseStr, MORSE_M)) {
+    return 'm';
+  } else if (isEqual(morseStr, MORSE_N)) {
+    return 'n';
+  } else if (isEqual(morseStr, MORSE_O)) {
+    return 'o';
+  } else if (isEqual(morseStr, MORSE_P)) {
+    return 'p';
+  } else if (isEqual(morseStr, MORSE_Q)) {
+    return 'q';
+  } else if (isEqual(morseStr, MORSE_R)) {
+    return 'r';
+  } else if (isEqual(morseStr, MORSE_S)) {
+    return 's';
+  } else if (isEqual(morseStr, MORSE_T)) {
+    return 't';
+  } else if (isEqual(morseStr, MORSE_U)) {
+    return 'u';
+  } else if (isEqual(morseStr, MORSE_V)) {
+    return 'v';
+  } else if (isEqual(morseStr, MORSE_W)) {
+    return 'w';
+  } else if (isEqual(morseStr, MORSE_X)) {
+    return 'x';
+  } else if (isEqual(morseStr, MORSE_Y)) {
+    return 'y';
+  } else if (isEqual(morseStr, MORSE_Z)) {
+    return 'z';
+  } else if (isEqual(morseStr, MORSE_1)) {
+    return '1';
+  } else if (isEqual(morseStr, MORSE_2)) {
+    return '2';
+  } else if (isEqual(morseStr, MORSE_3)) {
+    return '3';
+  } else if (isEqual(morseStr, MORSE_4)) {
+    return '4';
+  } else if (isEqual(morseStr, MORSE_5)) {
+    return '5';
+  } else if (isEqual(morseStr, MORSE_6)) {
+    return '6';
+  } else if (isEqual(morseStr, MORSE_7)) {
+    return '7';
+  } else if (isEqual(morseStr, MORSE_8)) {
+    return '8';
+  } else if (isEqual(morseStr, MORSE_9)) {
+    return '9';
+  } else if (isEqual(morseStr, MORSE_0)) {
+    return '0';
+  } else if (isEqual(morseStr, MORSE_PERIOD)) {
+    return '.';
+  } else if (isEqual(morseStr, MORSE_COMMA)) {
+    return ',';
+  } else if (isEqual(morseStr, MORSE_QUESTION_MARK)) {
+    return '?';
   }
 }
 
