@@ -46,7 +46,6 @@ const char MORSE_PERIOD[] = "._._._";
 const char MORSE_COMMA[] = "__..__";
 const char MORSE_QUESTION_MARK[] = "..__..";
 
-int symbolStart = -1;
 
 /*
   Set the speed of your morse code
@@ -60,10 +59,10 @@ int symbolStart = -1;
     Pause between characters = Dot length x 3
     Pause between words = Dot length x 7
 */
-const int dotLen = 100;     // length of the morse code 'dot'
+const int dotLen = 80;     // length of the morse code 'dot'
 const int dashLen = dotLen * 3;    // length of the morse code 'dash'
 const int elemPause = dotLen;  // length of the pause between elements of a character
-const int charSpacing = dotLen * 3;     // length of the spaces between characters
+const int charSpacing = dotLen * 4;     // length of the spaces between characters
 const int wordSpacing = dotLen * 7;  // length of the pause between words
 
 const int MODE_PLAY_CODED_STRING = 0;
@@ -105,6 +104,11 @@ void loop() {
   }
 }
 
+int symbolStart = -1;
+int lastSymbolReceivedAt = -1;
+//int charStart = -1;
+//int wordStart = -1;
+
 void playOscillator() {
   int reading = digitalRead(keyPin);
   // If the switch changed, due to noise or pressing:
@@ -120,8 +124,9 @@ void playOscillator() {
   if ((millis() - lastDebounceTime) > debounceDelay && reading != buttonState) {
     buttonState = reading;
     if (buttonState == HIGH) {
+      int now = millis();
       if (symbolStart == -1) {
-        symbolStart = millis();
+        symbolStart = now;
       }
       tone(tonePin, note);
     } else {
@@ -130,13 +135,20 @@ void playOscillator() {
         int now = millis();
         if (now - symbolStart >= dashLen) {
           Serial.print("_");
-          symbolStart = -1;
         } else {
           Serial.print(".");
-          symbolStart = -1;
         }
+        symbolStart = -1;
+        lastSymbolReceivedAt = millis();
       }
     }
+  }
+  int now = millis();
+  if (buttonState == LOW && lastSymbolReceivedAt != -1 && now - lastSymbolReceivedAt > charSpacing) {
+    Serial.print(" ");
+    int diff = now - lastSymbolReceivedAt;
+    //Serial.println(diff);
+    lastSymbolReceivedAt = -1;
   }
   // save the reading. Next time through the loop, it'll be the lastButtonState:
   lastButtonState = reading;
