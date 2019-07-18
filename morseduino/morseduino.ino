@@ -105,13 +105,20 @@ void loop() {
 }
 
 // The time at which a dot or dash started. This is used for identifying dots and dashes
-int symbolStartedAt = -1; 
+int symbolStartedAt = -1;
 
 // The time at which the last dot or dash was received. This is used to identify character boundaries.
-int lastSymbolReceivedAt = -1; 
+int lastSymbolReceivedAt = -1;
 
 // The time at which the last character was received. This is used for identifying word boundaries.
 int lastCharReceivedAt = -1;
+
+// Holds the currently active symbol (dots and dashes) buffer.
+// This will be used later for identifying the character from the dots and dashes.
+const int MAX_SYMBOLS = 6;
+char currentSymbolBuff[MAX_SYMBOLS]; // Maximum possible symbols in Morse code is 6
+int currentSymbolIndex = 0;
+bool garbageReceived = false;
 
 void playOscillator() {
   int reading = digitalRead(keyPin);
@@ -136,15 +143,25 @@ void playOscillator() {
     } else {
       noTone(tonePin);
       if (symbolStartedAt != -1) {
-        int now = millis();
-        if (now - symbolStartedAt >= dashLen) {
-          Serial.print("_");
+        if (currentSymbolIndex == MAX_SYMBOLS) {
+          resetCurrentSymbolBuff();
+          garbageReceived = true;
+          symbolStartedAt = -1;
+          lastSymbolReceivedAt = -1;
+          lastCharReceivedAt = -1;
         } else {
-          Serial.print(".");
+          int now = millis();
+          if (now - symbolStartedAt >= dashLen) {
+            //Serial.print("_");
+            currentSymbolBuff[currentSymbolIndex++] = '_';
+          } else {
+            //Serial.print(".");
+            currentSymbolBuff[currentSymbolIndex++] = '.';
+          }
+          symbolStartedAt = -1;
+          lastSymbolReceivedAt = millis();
+          lastCharReceivedAt = -1;
         }
-        symbolStartedAt = -1;
-        lastSymbolReceivedAt = millis();
-        lastCharReceivedAt = -1;
       }
     }
   }
@@ -156,13 +173,27 @@ void playOscillator() {
 
       //TODO: Identify char in buffer and print it out
     } else if (lastSymbolReceivedAt != -1 && now - lastSymbolReceivedAt > charSpacing) {
-      Serial.print(" ");
+      if (!garbageReceived) {
+        Serial.print(currentSymbolBuff);
+         Serial.print(" ");
+      } else {
+        Serial.print("# ");
+        garbageReceived = false;
+      }
+      resetCurrentSymbolBuff();
       lastSymbolReceivedAt = -1;
       lastCharReceivedAt = millis();
-    } 
+    }
   }
   // save the reading. Next time through the loop, it'll be the lastMorseKeyState:
   lastMorseKeyState = reading;
+}
+
+void resetCurrentSymbolBuff() {
+  for (int i = 0; i < MAX_SYMBOLS; i++) {
+    currentSymbolBuff[i] = '\0';
+  }
+  currentSymbolIndex = 0;
 }
 
 void playCodeFromSerial() {
