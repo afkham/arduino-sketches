@@ -4,7 +4,7 @@ const String CONST_STRING = "cq cq cq 4s7kg";
 const int tonePin = 8;      // output audio on pin 8
 const int keyPin = 2;       // Morse key pin
 const int switchModePin = 4; // Pin for switching between Morse key input and serial input
-const int note = 1750;      // music note/pitch
+const int note = 1800;      // music note/pitch
 
 const char MORSE_A[] = "._";
 const char MORSE_B[] = "_...";
@@ -59,7 +59,7 @@ const char MORSE_QUESTION_MARK[] = "..__..";
     Pause between characters = Dot length x 3
     Pause between words = Dot length x 7
 */
-const int dotLen = 80;     // length of the morse code 'dot'
+const int dotLen = 90;     // length of the morse code 'dot'
 const int dashLen = dotLen * 3;    // length of the morse code 'dash'
 const int elemPause = dotLen;  // length of the pause between elements of a character
 const int charSpacing = dotLen * 4;     // length of the spaces between characters
@@ -168,10 +168,8 @@ void playOscillator() {
   if (morseKeyState == LOW) {
     int now = millis();
     if (lastCharReceivedAt != -1 && now - lastCharReceivedAt > wordSpacing) {
-      Serial.print("/ ");
+      Serial.print(" ");
       lastCharReceivedAt = -1;
-
-      //TODO: Identify char in buffer and print it out
     } else if (lastSymbolReceivedAt != -1 && now - lastSymbolReceivedAt > charSpacing) {
       if (!garbageReceived) {
         // Serial.print(currentSymbolBuff);
@@ -338,6 +336,8 @@ char morseToChar(char morseStr[]) {
     return ',';
   } else if (isEqual(morseStr, MORSE_QUESTION_MARK)) {
     return '?';
+  } else {
+    return ' ';
   }
 }
 
