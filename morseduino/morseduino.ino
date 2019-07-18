@@ -3,6 +3,7 @@ const String CONST_STRING = "cq cq cq 4s7kg";
 
 const int tonePin = 8;      // output audio on pin 8
 const int keyPin = 2;       // Morse key pin
+const int switchModePin = 4; // Pin for switching between Morse key input and serial input
 const int note = 1750;      // music note/pitch
 
 /*
@@ -27,16 +28,24 @@ const int MODE_PLAY_CODED_STRING = 0;
 const int MODE_READ_FROM_SERIAL = 1;
 const int MODE_OSCILLATOR = 2;
 
-// int mode = MODE_PLAY_CODED_STRING;
+int mode = MODE_PLAY_CODED_STRING;
 // int mode = MODE_READ_FROM_SERIAL;
-int mode = MODE_OSCILLATOR;
+// int mode = MODE_OSCILLATOR;
 
 // the setup routine runs once when you press reset:
 void setup() {
+  pinMode(keyPin, INPUT);
+  pinMode(switchModePin, INPUT);
   Serial.begin(9600);
 }
 
 void loop() {
+  int buttonState = digitalRead(switchModePin);
+  if(buttonState == HIGH) {
+    mode = MODE_READ_FROM_SERIAL;
+  } else {
+    mode = MODE_OSCILLATOR;
+  }
   switch (mode) {
     case MODE_PLAY_CODED_STRING:
       playCode(CONST_STRING);
