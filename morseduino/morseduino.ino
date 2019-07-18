@@ -43,7 +43,10 @@ const char MORSE_8[] = "___..";
 const char MORSE_9[] = "____.";
 const char MORSE_0[] = "_____";
 const char MORSE_PERIOD[] = "._._._";
+const char MORSE_COMMA[] = "__..__";
+const char MORSE_QUESTION_MARK[] = "..__..";
 
+int symbolStart = -1;
 
 /*
   Set the speed of your morse code
@@ -71,6 +74,13 @@ int mode = MODE_PLAY_CODED_STRING;
 // int mode = MODE_READ_FROM_SERIAL;
 // int mode = MODE_OSCILLATOR;
 
+int buttonState;             // the current reading from the input pin
+int lastButtonState = LOW;   // the previous reading from the input pin
+// the following variables are unsigned longs because the time, measured in
+// milliseconds, will quickly become a bigger number than can be stored in an int.
+unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
+unsigned long debounceDelay = 50;    // the debounce time; increase if the output flickers
+
 // the setup routine runs once when you press reset:
 void setup() {
   pinMode(keyPin, INPUT);
@@ -96,7 +106,40 @@ void loop() {
 }
 
 void playOscillator() {
-  digitalRead(keyPin) == HIGH ? tone(tonePin, note, dotLen) : noTone(tonePin);
+  int reading = digitalRead(keyPin);
+  // If the switch changed, due to noise or pressing:
+  if (reading != lastButtonState) {
+    // reset the debouncing timer
+    lastDebounceTime = millis();
+  }
+
+  // whatever the reading is at, it's been there for longer than the debounce
+  // delay, so take it as the actual current state:
+  // AND
+  // if the button state has changed:
+  if ((millis() - lastDebounceTime) > debounceDelay && reading != buttonState) {
+    buttonState = reading;
+    if (buttonState == HIGH) {
+      if (symbolStart == -1) {
+        symbolStart = millis();
+      }
+      tone(tonePin, note);
+    } else {
+      noTone(tonePin);
+      if (symbolStart != -1) {
+        int now = millis();
+        if (now - symbolStart >= dashLen) {
+          Serial.print("_");
+          symbolStart = -1;
+        } else {
+          Serial.print(".");
+          symbolStart = -1;
+        }
+      }
+    }
+  }
+  // save the reading. Next time through the loop, it'll be the lastButtonState:
+  lastButtonState = reading;
 }
 
 void playCodeFromSerial() {
@@ -143,9 +186,7 @@ void playMorseSequence(String morseSequence) {
   }
 }
 
-void playMorse(char normalChar)
-{
-  // Take the passed character and use a switch case to find the morse code for that character
+void playMorse(char normalChar) {
   switch (normalChar) {
     case 'a':
       playMorseSequence(MORSE_A);
@@ -257,6 +298,12 @@ void playMorse(char normalChar)
       break;
     case '.':
       playMorseSequence(MORSE_PERIOD);
+      break;
+    case ',':
+      playMorseSequence(MORSE_COMMA);
+      break;
+    case '?':
+      playMorseSequence(MORSE_QUESTION_MARK);
       break;
     case ' ':
       pause(wordSpacing);
