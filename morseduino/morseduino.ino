@@ -6,6 +6,45 @@ const int keyPin = 2;       // Morse key pin
 const int switchModePin = 4; // Pin for switching between Morse key input and serial input
 const int note = 1750;      // music note/pitch
 
+const char MORSE_A[] = "._";
+const char MORSE_B[] = "_...";
+const char MORSE_C[] = "_._.";
+const char MORSE_D[] = "_..";
+const char MORSE_E[] = ".";
+const char MORSE_F[] = ".._.";
+const char MORSE_G[] = "__.";
+const char MORSE_H[] = "....";
+const char MORSE_I[] = "..";
+const char MORSE_J[] = ".___";
+const char MORSE_K[] = "_._";
+const char MORSE_L[] = "._..";
+const char MORSE_M[] = "__";
+const char MORSE_N[] = "_.";
+const char MORSE_O[] = "___";
+const char MORSE_P[] = ".__.";
+const char MORSE_Q[] = "__._";
+const char MORSE_R[] = "._.";
+const char MORSE_S[] = "...";
+const char MORSE_T[] = "_";
+const char MORSE_U[] = "_.";
+const char MORSE_V[] = "..._";
+const char MORSE_W[] = ".__";
+const char MORSE_X[] = "_.._";
+const char MORSE_Y[] = "_.__";
+const char MORSE_Z[] = "__..";
+const char MORSE_1[] = ".____";
+const char MORSE_2[] = "..___";
+const char MORSE_3[] = "...__";
+const char MORSE_4[] = "...._";
+const char MORSE_5[] = ".....";
+const char MORSE_6[] = "_....";
+const char MORSE_7[] = "__...";
+const char MORSE_8[] = "___..";
+const char MORSE_9[] = "____.";
+const char MORSE_0[] = "_____";
+const char MORSE_PERIOD[] = "._._._";
+
+
 /*
   Set the speed of your morse code
   Adjust the 'dotlen' length to speed up or slow down your morse code
@@ -40,12 +79,7 @@ void setup() {
 }
 
 void loop() {
-  int buttonState = digitalRead(switchModePin);
-  if(buttonState == HIGH) {
-    mode = MODE_READ_FROM_SERIAL;
-  } else {
-    mode = MODE_OSCILLATOR;
-  }
+  int mode = (digitalRead(switchModePin) == HIGH) ? MODE_READ_FROM_SERIAL : MODE_OSCILLATOR;
   switch (mode) {
     case MODE_PLAY_CODED_STRING:
       playCode(CONST_STRING);
@@ -55,19 +89,14 @@ void loop() {
       break;
     case MODE_OSCILLATOR:
       playOscillator();
-      break;  
+      break;
     default:
       break;
   }
 }
 
 void playOscillator() {
-  int buttonState = digitalRead(keyPin);
-  if(buttonState == HIGH) {
-    tone(tonePin, note, dotLen); 
-  } else {
-    noTone(tonePin); 
-  }
+  digitalRead(keyPin) == HIGH ? tone(tonePin, note, dotLen) : noTone(tonePin);
 }
 
 void playCodeFromSerial() {
@@ -81,7 +110,7 @@ void playCode(String strToPlay) {
   char str[strToPlay.length() + 1] ;
   strToPlay.toCharArray(str, strToPlay.length() + 1);
   for (int i = 0; i < sizeof(str) - 1; i++) {
-    playMoreChar(toLowerCase(str[i]));
+    playMorse(toLowerCase(str[i]));
     delay(dotLen * 2);
     Serial.print(str[i]);
   }
@@ -89,13 +118,9 @@ void playCode(String strToPlay) {
   pause(5000);
 }
 
-void dit() {
-  di();
-}
 void di() {
-
-  tone(tonePin, note, dotLen); 
-  delay(dotLen);              
+  tone(tonePin, note, dotLen);
+  delay(dotLen);
   pause(elemPause);
 }
 
@@ -106,125 +131,132 @@ void dah() {
 }
 
 void pause(int delayTime) {
-  noTone(tonePin);             
-  delay(delayTime);    
+  noTone(tonePin);
+  delay(delayTime);
 }
 
+void playMorseSequence(String morseSequence) {
+  char morseCharSeq[morseSequence.length() + 1] ;
+  morseSequence.toCharArray(morseCharSeq, morseSequence.length() + 1);
+  for (int i = 0; i < sizeof(morseCharSeq) - 1; i++) {
+    morseCharSeq[i] == '.' ? di() : dah();
+  }
+}
 
-void playMoreChar(char normalChar)
+void playMorse(char normalChar)
 {
   // Take the passed character and use a switch case to find the morse code for that character
   switch (normalChar) {
     case 'a':
-      di(); dah();
+      playMorseSequence(MORSE_A);
       break;
     case 'b':
-      dah(); di(); di(); dit();
+      playMorseSequence(MORSE_B);
       break;
     case 'c':
-      dah(); di(); dah(); dit();
+      playMorseSequence(MORSE_C);
       break;
     case 'd':
-      dah(); di(); dit();
+      playMorseSequence(MORSE_D);
       break;
     case 'e':
-      di();
+      playMorseSequence(MORSE_E);
       break;
     case 'f':
-      di(); di(); dah(); dit();
+      playMorseSequence(MORSE_F);
       break;
     case 'g':
-      dah(); dah(); dit();
+      playMorseSequence(MORSE_G);
       break;
     case 'h':
-      di(); di(); di(); dit();
+      playMorseSequence(MORSE_H);
       break;
     case 'i':
-      di(); dit();
+      playMorseSequence(MORSE_I);
       break;
     case 'j':
-      di(); dah(); dah(); dah();
+      playMorseSequence(MORSE_J);
       break;
     case 'k':
-      dah(); di(); dah();
+      playMorseSequence(MORSE_K);
       break;
     case 'l':
-      di(); dah(); di(); dit();
+      playMorseSequence(MORSE_L);
       break;
     case 'm':
-      dah(); dah();
+      playMorseSequence(MORSE_M);
       break;
     case 'n':
-      dah(); dit();
+      playMorseSequence(MORSE_N);
       break;
     case 'o':
-      dah(); dah(); dah();
+      playMorseSequence(MORSE_O);
       break;
     case 'p':
-      di(); dah(); dah(); dit();
+      playMorseSequence(MORSE_P);
       break;
     case 'q':
-      dah(); dah(); di(); dah();
+      playMorseSequence(MORSE_Q);
       break;
     case 'r':
-      di(); dah(); dit();
+      playMorseSequence(MORSE_R);
       break;
     case 's':
-      di(); di(); dit();
+      playMorseSequence(MORSE_S);
       break;
     case 't':
-      dah();
+      playMorseSequence(MORSE_T);
       break;
     case 'u':
-      di(); di(); dah();
+      playMorseSequence(MORSE_U);
       break;
     case 'v':
-      di(); di(); di(); dah();
+      playMorseSequence(MORSE_V);
       break;
     case 'w':
-      di(); dah(); dah();
+      playMorseSequence(MORSE_W);
       break;
     case 'x':
-      dah(); di(); di(); dah();
+      playMorseSequence(MORSE_X);
       break;
     case 'y':
-      dah(); di(); dah(); dah();
+      playMorseSequence(MORSE_Y);
       break;
     case 'z':
-      dah(); dah(); di(); di();
+      playMorseSequence(MORSE_Z);
       break;
     case '1':
-      di(); dah(); dah(); dah(); dah();
+      playMorseSequence(MORSE_1);
       break;
     case '2':
-      di(); di(); dah(); dah(); dah();
+      playMorseSequence(MORSE_2);
       break;
     case '3':
-      di(); di(); di(); dah(); dah();
+      playMorseSequence(MORSE_3);
       break;
     case '4':
-      di(); di(); di(); di(); dah();
+      playMorseSequence(MORSE_4);
       break;
     case '5':
-      di(); di(); di(); di(); dit();
+      playMorseSequence(MORSE_5);
       break;
     case '6':
-      dah(); di(); di(); di(); dit();
+      playMorseSequence(MORSE_6);
       break;
     case '7':
-      dah(); dah(); di(); di(); dit();
+      playMorseSequence(MORSE_7);
       break;
     case '8':
-      dah(); dah(); dah(); di(); dit();
+      playMorseSequence(MORSE_8);
       break;
     case '9':
-      dah(); dah(); dah(); dah(); dit();
+      playMorseSequence(MORSE_9);
       break;
     case '0':
-      dah(); dah(); dah(); dah(); dah();
+      playMorseSequence(MORSE_0);
       break;
     case '.':
-      di(); dah(); di(); dah(); di(); dah();
+      playMorseSequence(MORSE_PERIOD);
       break;
     case ' ':
       pause(wordSpacing);
