@@ -59,7 +59,7 @@ const char MORSE_QUESTION_MARK[] = "..__..";
     Pause between characters = Dot length x 3
     Pause between words = Dot length x 7
 */
-const int dotLen = 100;     // length of the morse code 'dot'
+const int dotLen = 80;     // length of the morse code 'dot'
 const int dashLen = dotLen * 3;    // length of the morse code 'dash'
 const int elemPause = dotLen;  // length of the pause between elements of a character
 const int charSpacing = dotLen * 4;     // length of the spaces between characters
@@ -73,8 +73,8 @@ int mode = MODE_PLAY_CODED_STRING;
 // int mode = MODE_READ_FROM_SERIAL;
 // int mode = MODE_OSCILLATOR;
 
-int buttonState;             // the current reading from the input pin
-int lastButtonState = LOW;   // the previous reading from the input pin
+int morseKeyState;             // the current reading from the input pin
+int lastMorseKeyState = LOW;   // the previous reading from the input pin
 // the following variables are unsigned longs because the time, measured in
 // milliseconds, will quickly become a bigger number than can be stored in an int.
 unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
@@ -104,16 +104,19 @@ void loop() {
   }
 }
 
-int symbolStart = -1;
-int lastSymbolReceivedAt = -1;
+// The time at which a dot or dash started. This is used for identifying dots and dashes
+int symbolStartedAt = -1; 
+
+// The time at which the last dot or dash was received. This is used to identify character boundaries.
+int lastSymbolReceivedAt = -1; 
+
+// The time at which the last character was received. This is used for identifying word boundaries.
 int lastCharReceivedAt = -1;
-//int charStart = -1;
-//int wordStart = -1;
 
 void playOscillator() {
   int reading = digitalRead(keyPin);
   // If the switch changed, due to noise or pressing:
-  if (reading != lastButtonState) {
+  if (reading != lastMorseKeyState) {
     // reset the debouncing timer
     lastDebounceTime = millis();
   }
@@ -122,42 +125,44 @@ void playOscillator() {
   // delay, so take it as the actual current state:
   // AND
   // if the button state has changed:
-  if ((millis() - lastDebounceTime) > debounceDelay && reading != buttonState) {
-    buttonState = reading;
-    if (buttonState == HIGH) {
+  if ((millis() - lastDebounceTime) > debounceDelay && reading != morseKeyState) {
+    morseKeyState = reading;
+    if (morseKeyState == HIGH) {
       int now = millis();
-      if (symbolStart == -1) {
-        symbolStart = now;
+      if (symbolStartedAt == -1) {
+        symbolStartedAt = now;
       }
       tone(tonePin, note);
     } else {
       noTone(tonePin);
-      if (symbolStart != -1) {
+      if (symbolStartedAt != -1) {
         int now = millis();
-        if (now - symbolStart >= dashLen) {
+        if (now - symbolStartedAt >= dashLen) {
           Serial.print("_");
         } else {
           Serial.print(".");
         }
-        symbolStart = -1;
+        symbolStartedAt = -1;
         lastSymbolReceivedAt = millis();
         lastCharReceivedAt = -1;
       }
     }
   }
-  if (buttonState == LOW) {
+  if (morseKeyState == LOW) {
     int now = millis();
     if (lastCharReceivedAt != -1 && now - lastCharReceivedAt > wordSpacing) {
       Serial.print("/ ");
       lastCharReceivedAt = -1;
+
+      //TODO: Identify char in buffer and print it out
     } else if (lastSymbolReceivedAt != -1 && now - lastSymbolReceivedAt > charSpacing) {
       Serial.print(" ");
       lastSymbolReceivedAt = -1;
       lastCharReceivedAt = millis();
     } 
   }
-  // save the reading. Next time through the loop, it'll be the lastButtonState:
-  lastButtonState = reading;
+  // save the reading. Next time through the loop, it'll be the lastMorseKeyState:
+  lastMorseKeyState = reading;
 }
 
 void playCodeFromSerial() {
