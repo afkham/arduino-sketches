@@ -145,18 +145,14 @@ void playOscillator() {
       noTone(tonePin);
       if (symbolStartedAt != -1) {
         if (currentSymbolIndex > MAX_SYMBOLS) {
-//          resetCurrentSymbolBuff();
           garbageReceived = true;
-//          symbolStartedAt = -1;
-//          lastSymbolReceivedAt = -1;
-//          lastCharReceivedAt = -1;
-        } else if(!garbageReceived) {
+        } else if (!garbageReceived) {
           int now = millis();
           if (now - symbolStartedAt >= dashLen) {
-//            Serial.print("_");
+            //            Serial.print("_");
             currentSymbolBuff[currentSymbolIndex++] = '_';
           } else {
-//            Serial.print(".");
+            //            Serial.print(".");
             currentSymbolBuff[currentSymbolIndex++] = '.';
           }
           symbolStartedAt = -1;
@@ -172,13 +168,8 @@ void playOscillator() {
       Serial.print(" ");
       lastCharReceivedAt = -1;
     } else if (lastSymbolReceivedAt != -1 && now - lastSymbolReceivedAt > charSpacing) {
-      if (!garbageReceived) {
-        // Serial.print(currentSymbolBuff);
-        //Serial.print(" ");
-        Serial.print(morseToChar(currentSymbolBuff));
-      } else {
-        garbageReceived = false;
-      }
+      Serial.print(morseToChar(currentSymbolBuff));
+      garbageReceived = false;
       resetCurrentSymbolBuff();
       lastSymbolReceivedAt = -1;
       lastCharReceivedAt = millis();
@@ -336,9 +327,11 @@ char morseToChar(char morseStr[]) {
     return ',';
   } else if (isEqual(morseStr, MORSE_QUESTION_MARK)) {
     return '?';
+  } else if (garbageReceived) {
+    return '#';
   } else {
-//    Serial.println();
-//    Serial.println(morseStr);
+    //    Serial.println();
+    //    Serial.println(morseStr);
     return '#';
   }
 }
