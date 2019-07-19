@@ -45,6 +45,7 @@ const char MORSE_0[] = "_____";
 const char MORSE_PERIOD[] = "._._._";
 const char MORSE_COMMA[] = "__..__";
 const char MORSE_QUESTION_MARK[] = "..__..";
+const char MORSE_SOS[] = "...___...";
 
 
 /*
@@ -115,10 +116,10 @@ int lastCharReceivedAt = -1;
 
 // Holds the currently active symbol (dots and dashes) buffer.
 // This will be used later for identifying the character from the dots and dashes.
-const int MAX_SYMBOLS = 6;
+const int MAX_SYMBOLS = 7;
 char currentSymbolBuff[MAX_SYMBOLS]; // Maximum possible symbols in Morse code is 6
-int currentSymbolIndex = 0;
-bool garbageReceived = false;
+int currentSymbolIndex = 0; // index to the currentSymbolBuff
+bool garbageReceived = false; // Indicates whether the received symbol sequence is invalid
 
 void playOscillator() {
   int reading = digitalRead(keyPin);
@@ -143,19 +144,19 @@ void playOscillator() {
     } else {
       noTone(tonePin);
       if (symbolStartedAt != -1) {
-        if (currentSymbolIndex == MAX_SYMBOLS) {
-          resetCurrentSymbolBuff();
+        if (currentSymbolIndex > MAX_SYMBOLS) {
+//          resetCurrentSymbolBuff();
           garbageReceived = true;
-          symbolStartedAt = -1;
-          lastSymbolReceivedAt = -1;
-          lastCharReceivedAt = -1;
-        } else {
+//          symbolStartedAt = -1;
+//          lastSymbolReceivedAt = -1;
+//          lastCharReceivedAt = -1;
+        } else if(!garbageReceived) {
           int now = millis();
           if (now - symbolStartedAt >= dashLen) {
-            //Serial.print("_");
+//            Serial.print("_");
             currentSymbolBuff[currentSymbolIndex++] = '_';
           } else {
-            //Serial.print(".");
+//            Serial.print(".");
             currentSymbolBuff[currentSymbolIndex++] = '.';
           }
           symbolStartedAt = -1;
@@ -176,7 +177,6 @@ void playOscillator() {
         //Serial.print(" ");
         Serial.print(morseToChar(currentSymbolBuff));
       } else {
-        Serial.print("# ");
         garbageReceived = false;
       }
       resetCurrentSymbolBuff();
@@ -337,7 +337,9 @@ char morseToChar(char morseStr[]) {
   } else if (isEqual(morseStr, MORSE_QUESTION_MARK)) {
     return '?';
   } else {
-    return ' ';
+//    Serial.println();
+//    Serial.println(morseStr);
+    return '#';
   }
 }
 
