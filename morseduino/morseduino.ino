@@ -62,7 +62,7 @@ const char MORSE_KA[] = "_._._";
 */
 const int dotLen = 80;     // length of the morse code 'dot'
 const int dashLen = dotLen * 3;    // length of the morse code 'dash'
-const int elemPause = dotLen;  // length of the pause between elements of a character
+const int symbolSpacing = dotLen;  // length of the pause between elements of a character
 const int charSpacing = dotLen * 4;     // length of the spaces between characters
 const int wordSpacing = dotLen * 7;  // length of the pause between words
 
@@ -208,13 +208,13 @@ void playCode(String strToPlay) {
 void di() {
   tone(tonePin, note, dotLen);
   delay(dotLen);
-  pause(elemPause);
+  pause(symbolSpacing);
 }
 
 void dah() {
   tone(tonePin, note, dashLen);  // start playing a tone
   delay(dashLen);               // hold in this position
-  pause(elemPause);
+  pause(symbolSpacing);
 }
 
 void pause(int delayTime) {
