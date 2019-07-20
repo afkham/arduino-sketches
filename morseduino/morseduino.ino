@@ -46,7 +46,7 @@ const char MORSE_PERIOD[] = "._._._";
 const char MORSE_COMMA[] = "__..__";
 const char MORSE_QUESTION_MARK[] = "..__..";
 const char MORSE_SOS[] = "...___...";
-
+const char MORSE_KA[] = "_._._";
 
 /*
   Set the speed of your morse code
@@ -60,7 +60,7 @@ const char MORSE_SOS[] = "...___...";
     Pause between characters = Dot length x 3
     Pause between words = Dot length x 7
 */
-const int dotLen = 90;     // length of the morse code 'dot'
+const int dotLen = 80;     // length of the morse code 'dot'
 const int dashLen = dotLen * 3;    // length of the morse code 'dash'
 const int elemPause = dotLen;  // length of the pause between elements of a character
 const int charSpacing = dotLen * 4;     // length of the spaces between characters
@@ -79,7 +79,7 @@ int lastMorseKeyState = LOW;   // the previous reading from the input pin
 // the following variables are unsigned longs because the time, measured in
 // milliseconds, will quickly become a bigger number than can be stored in an int.
 unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
-unsigned long debounceDelay = 50;    // the debounce time; increase if the output flickers
+unsigned long debounceDelay = 25;    // the debounce time; increase if the output flickers
 
 // the setup routine runs once when you press reset:
 void setup() {
@@ -327,6 +327,8 @@ char morseToChar(char morseStr[]) {
     return ',';
   } else if (isEqual(morseStr, MORSE_QUESTION_MARK)) {
     return '?';
+  } else if (isEqual(morseStr, MORSE_KA)) {
+    return '>';
   } else if (garbageReceived) {
     return '#';
   } else {
