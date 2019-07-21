@@ -1,10 +1,10 @@
 
 const String CONST_STRING = "cq cq cq 4s7kg";
 
-const int tonePin = 8;      // output audio on pin 8
-const int keyPin = 2;       // Morse key pin
-const int switchModePin = 4; // Pin for switching between Morse key input and serial input
-const int note = 1800;      // music note/pitch
+const int TONE_PIN = 8;      // output audio on pin 8
+const int KEY_PIN = 2;       // Morse key pin
+const int MODE_SELECT_PIN = 4; // Pin for switching between Morse key input and serial input
+const int TONE_HZ = 1800;      // music TONE_HZ/pitch in Hertz
 
 const char MORSE_A[] = "._";
 const char MORSE_B[] = "_...";
@@ -50,8 +50,8 @@ const char MORSE_KA[] = "_._._";
 
 /*
   Set the speed of your morse code
-  Adjust the 'dotlen' length to speed up or slow down your morse code
-    (all of the other lengths are based on the dotlen)
+  Adjust the 'DOT_LEN' length to speed up or slow down your morse code
+    (all of the other lengths are based on the DOT_LEN)
 
   Here are the ratios code elements:
     Dash length = Dot length x 3
@@ -60,40 +60,28 @@ const char MORSE_KA[] = "_._._";
     Pause between characters = Dot length x 3
     Pause between words = Dot length x 7
 */
-const int dotLen = 80;     // length of the morse code 'dot'
-const int dashLen = dotLen * 3;    // length of the morse code 'dash'
-const int symbolSpacing = dotLen;  // length of the pause between elements of a character
-const int charSpacing = dotLen * 4;     // length of the spaces between characters
-const int wordSpacing = dotLen * 7;  // length of the pause between words
+const int DOT_LEN = 60;     // length of the morse code 'dot'
+const int DASH_LEN = DOT_LEN * 3;    // length of the morse code 'dash'
+const int SYMBOL_SPACING = DOT_LEN;  // length of the pause between elements of a character
+const int CHAR_SPACING = DOT_LEN * 3;     // length of the spaces between characters
+const int WORD_SPACING = DOT_LEN * 7;  // length of the pause between words
 
-const int MODE_PLAY_CODED_STRING = 0;
+// Selection between player mode and oscillator mode
 const int MODE_READ_FROM_SERIAL = 1;
 const int MODE_OSCILLATOR = 2;
+int mode = MODE_OSCILLATOR;
 
-int mode = MODE_PLAY_CODED_STRING;
-// int mode = MODE_READ_FROM_SERIAL;
-// int mode = MODE_OSCILLATOR;
+int morseKeyState;             // the current reading from the Morse key
 
-int morseKeyState;             // the current reading from the input pin
-int lastMorseKeyState = LOW;   // the previous reading from the input pin
-// the following variables are unsigned longs because the time, measured in
-// milliseconds, will quickly become a bigger number than can be stored in an int.
-unsigned long lastDebounceTime = 0;  // the last time the output pin was toggled
-unsigned long debounceDelay = 25;    // the debounce time; increase if the output flickers
-
-// the setup routine runs once when you press reset:
 void setup() {
-  pinMode(keyPin, INPUT);
-  pinMode(switchModePin, INPUT);
+  pinMode(KEY_PIN, INPUT);
+  pinMode(MODE_SELECT_PIN, INPUT);
   Serial.begin(9600);
 }
 
 void loop() {
-  int mode = (digitalRead(switchModePin) == HIGH) ? MODE_READ_FROM_SERIAL : MODE_OSCILLATOR;
+  int mode = (digitalRead(MODE_SELECT_PIN) == HIGH) ? MODE_READ_FROM_SERIAL : MODE_OSCILLATOR;
   switch (mode) {
-    case MODE_PLAY_CODED_STRING:
-      playCode(CONST_STRING);
-      break;
     case MODE_READ_FROM_SERIAL:
       playCodeFromSerial();
       break;
@@ -122,52 +110,39 @@ int currentSymbolIndex = 0; // index to the currentSymbolBuff
 bool garbageReceived = false; // Indicates whether the received symbol sequence is invalid
 
 void playOscillator() {
-  int reading = digitalRead(keyPin);
-  // If the switch changed, due to noise or pressing:
-  if (reading != lastMorseKeyState) {
-    // reset the debouncing timer
-    lastDebounceTime = millis();
-  }
-
-  // whatever the reading is at, it's been there for longer than the debounce
-  // delay, so take it as the actual current state:
-  // AND
-  // if the button state has changed:
-  if ((millis() - lastDebounceTime) > debounceDelay && reading != morseKeyState) {
-    morseKeyState = reading;
-    if (morseKeyState == HIGH) {
-      int now = millis();
-      if (symbolStartedAt == -1) {
-        symbolStartedAt = now;
-      }
-      tone(tonePin, note);
-    } else {
-      noTone(tonePin);
-      if (symbolStartedAt != -1) {
-        if (currentSymbolIndex > MAX_SYMBOLS) {
-          garbageReceived = true;
-        } else if (!garbageReceived) {
-          int now = millis();
-          if (now - symbolStartedAt >= dashLen) {
-            //            Serial.print("_");
-            currentSymbolBuff[currentSymbolIndex++] = '_';
-          } else {
-            //            Serial.print(".");
-            currentSymbolBuff[currentSymbolIndex++] = '.';
-          }
-          symbolStartedAt = -1;
-          lastSymbolReceivedAt = millis();
-          lastCharReceivedAt = -1;
+  morseKeyState = digitalRead(KEY_PIN);
+  if (morseKeyState == HIGH) {
+    int now = millis();
+    if (symbolStartedAt == -1) {
+      symbolStartedAt = now;
+    }
+    tone(TONE_PIN, TONE_HZ);
+  } else {
+    noTone(TONE_PIN);
+    if (symbolStartedAt != -1) {
+      if (currentSymbolIndex > MAX_SYMBOLS) {
+        garbageReceived = true;
+      } else if (!garbageReceived) {
+        int now = millis();
+        if (now - symbolStartedAt >= DASH_LEN) {
+          //            Serial.print("_");
+          currentSymbolBuff[currentSymbolIndex++] = '_';
+        } else {
+          //            Serial.print(".");
+          currentSymbolBuff[currentSymbolIndex++] = '.';
         }
+        symbolStartedAt = -1;
+        lastSymbolReceivedAt = millis();
+        lastCharReceivedAt = -1;
       }
     }
   }
   if (morseKeyState == LOW) {
     int now = millis();
-    if (lastCharReceivedAt != -1 && now - lastCharReceivedAt > wordSpacing) {
+    if (lastCharReceivedAt != -1 && now - lastCharReceivedAt > WORD_SPACING) {
       Serial.print(" ");
       lastCharReceivedAt = -1;
-    } else if (lastSymbolReceivedAt != -1 && now - lastSymbolReceivedAt > charSpacing) {
+    } else if (lastSymbolReceivedAt != -1 && now - lastSymbolReceivedAt > CHAR_SPACING) {
       Serial.print(morseToChar(currentSymbolBuff));
       garbageReceived = false;
       resetCurrentSymbolBuff();
@@ -175,8 +150,6 @@ void playOscillator() {
       lastCharReceivedAt = millis();
     }
   }
-  // save the reading. Next time through the loop, it'll be the lastMorseKeyState:
-  lastMorseKeyState = reading;
 }
 
 void resetCurrentSymbolBuff() {
@@ -198,7 +171,7 @@ void playCode(String strToPlay) {
   strToPlay.toCharArray(str, strToPlay.length() + 1);
   for (int i = 0; i < sizeof(str) - 1; i++) {
     playMorse(toLowerCase(str[i]));
-    delay(dotLen * 2);
+    delay(DOT_LEN * 2);
     Serial.print(str[i]);
   }
   Serial.println();
@@ -206,19 +179,19 @@ void playCode(String strToPlay) {
 }
 
 void di() {
-  tone(tonePin, note, dotLen);
-  delay(dotLen);
-  pause(symbolSpacing);
+  tone(TONE_PIN, TONE_HZ, DOT_LEN);
+  delay(DOT_LEN);
+  pause(SYMBOL_SPACING);
 }
 
 void dah() {
-  tone(tonePin, note, dashLen);  // start playing a tone
-  delay(dashLen);               // hold in this position
-  pause(symbolSpacing);
+  tone(TONE_PIN, TONE_HZ, DASH_LEN);  // start playing a tone
+  delay(DASH_LEN);               // hold in this position
+  pause(SYMBOL_SPACING);
 }
 
 void pause(int delayTime) {
-  noTone(tonePin);
+  noTone(TONE_PIN);
   delay(delayTime);
 }
 
@@ -458,9 +431,9 @@ void playMorse(char normalChar) {
       playMorseSequence(MORSE_QUESTION_MARK);
       break;
     case ' ':
-      pause(wordSpacing);
+      pause(WORD_SPACING);
       break;
     default:
-      pause(charSpacing);
+      pause(CHAR_SPACING);
   }
 }
