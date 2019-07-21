@@ -276,7 +276,7 @@ void printChar(char morseStr[]) {
   } else if (isEqual(morseStr, MORSE_MINUS)) {
     Serial.print('-');
   } else if (isEqual(morseStr, MORSE_SOS)) {
-    Serial.print(" SOS ");
+    Serial.print("|SOS|");
   } else if (isEqual(morseStr, MORSE_PLEASE_STOP)) {
     Serial.print("|AS|");
   } else if (isEqual(morseStr, MORSE_END_OF_TX)) {
@@ -428,6 +428,15 @@ void playMorse(char normalChar) {
       break;
     case '?':
       playMorseSequence(MORSE_QUESTION_MARK);
+      break;
+    case '+':
+      playMorseSequence(MORSE_PLUS);
+      break;
+    case '-':
+      playMorseSequence(MORSE_MINUS);
+      break;
+    case '=':
+      playMorseSequence(MORSE_EQ);
       break;
     case ' ':
       pause(WORD_SPACING);
