@@ -136,8 +136,6 @@ void playOscillator() {
         lastCharReceivedAt = -1;
       }
     }
-  }
-  if (morseKeyState == LOW) {
     int now = millis();
     if (lastCharReceivedAt != -1 && now - lastCharReceivedAt > WORD_SPACING) {
       Serial.print(" ");
