@@ -6,6 +6,13 @@ const int KEY_PIN = 2;       // Morse key pin
 const int MODE_SELECT_PIN = 4; // Pin for switching between Morse key input and serial input
 const int TONE_HZ = 1800;      // music TONE_HZ/pitch in Hertz
 
+void setup() {
+  pinMode(KEY_PIN, INPUT);
+  pinMode(MODE_SELECT_PIN, INPUT);
+  Serial.begin(9600);
+}
+
+// Morse Alphabet
 const char MORSE_A[] = "._";
 const char MORSE_B[] = "_...";
 const char MORSE_C[] = "_._.";
@@ -45,8 +52,15 @@ const char MORSE_0[] = "_____";
 const char MORSE_PERIOD[] = "._._._";
 const char MORSE_COMMA[] = "__..__";
 const char MORSE_QUESTION_MARK[] = "..__..";
+const char MORSE_EQ[] = "_..._";
+const char MORSE_PLUS[] = "._._.";
+const char MORSE_MINUS[] = "_...._";
+
 const char MORSE_SOS[] = "...___...";
-const char MORSE_KA[] = "_._._";
+const char MORSE_START[] = "_._._";
+const char MORSE_PLEASE_STOP[] = "._...";
+const char MORSE_END_OF_TX[] = "._._.";
+const char MORSE_END_OF_WORK[] = "..._._";
 
 /*
   Set the speed of your morse code
@@ -67,31 +81,27 @@ const int CHAR_SPACING = DOT_LEN * 3;     // length of the spaces between charac
 const int WORD_SPACING = DOT_LEN * 7;  // length of the pause between words
 
 // Selection between player mode and oscillator mode
+const int MODE_OSCILLATOR = 0;
 const int MODE_READ_FROM_SERIAL = 1;
-const int MODE_OSCILLATOR = 2;
 int mode = MODE_OSCILLATOR;
 
 int morseKeyState;             // the current reading from the Morse key
 
-void setup() {
-  pinMode(KEY_PIN, INPUT);
-  pinMode(MODE_SELECT_PIN, INPUT);
-  Serial.begin(9600);
-}
-
 void loop() {
   int mode = (digitalRead(MODE_SELECT_PIN) == HIGH) ? MODE_READ_FROM_SERIAL : MODE_OSCILLATOR;
   switch (mode) {
-    case MODE_READ_FROM_SERIAL:
-      playCodeFromSerial();
-      break;
     case MODE_OSCILLATOR:
       playOscillator();
+      break;
+    case MODE_READ_FROM_SERIAL:
+      playCodeFromSerial();
       break;
     default:
       break;
   }
 }
+
+// ------------ functions for oscillator mode -----------
 
 // The time at which a dot or dash started. This is used for identifying dots and dashes
 int symbolStartedAt = -1;
@@ -104,8 +114,8 @@ int lastCharReceivedAt = -1;
 
 // Holds the currently active symbol (dots and dashes) buffer.
 // This will be used later for identifying the character from the dots and dashes.
-const int MAX_SYMBOLS = 7;
-char currentSymbolBuff[MAX_SYMBOLS]; // Maximum possible symbols in Morse code is 6
+const int MAX_SYMBOLS = 10;
+char currentSymbolBuff[MAX_SYMBOLS]; // Maximum possible symbols in Morse code is 10
 int currentSymbolIndex = 0; // index to the currentSymbolBuff
 bool garbageReceived = false; // Indicates whether the received symbol sequence is invalid
 
@@ -137,11 +147,11 @@ void playOscillator() {
       }
     }
     int now = millis();
-    if (lastCharReceivedAt != -1 && now - lastCharReceivedAt > WORD_SPACING) {
+    if (lastCharReceivedAt != -1 && now - lastCharReceivedAt > WORD_SPACING) { // Have we completed a word?
       Serial.print(" ");
       lastCharReceivedAt = -1;
-    } else if (lastSymbolReceivedAt != -1 && now - lastSymbolReceivedAt > CHAR_SPACING) {
-      Serial.print(morseToChar(currentSymbolBuff));
+    } else if (lastSymbolReceivedAt != -1 && now - lastSymbolReceivedAt > CHAR_SPACING) { // Have we completed a character?
+      printChar(currentSymbolBuff);
       garbageReceived = false;
       resetCurrentSymbolBuff();
       lastSymbolReceivedAt = -1;
@@ -157,48 +167,9 @@ void resetCurrentSymbolBuff() {
   currentSymbolIndex = 0;
 }
 
-void playCodeFromSerial() {
-  if (Serial.available() > 0) {
-    String serialRead = Serial.readString();
-    playCode(serialRead);
-  }
-}
-
-void playCode(String strToPlay) {
-  char str[strToPlay.length() + 1] ;
-  strToPlay.toCharArray(str, strToPlay.length() + 1);
-  for (int i = 0; i < sizeof(str) - 1; i++) {
-    playMorse(toLowerCase(str[i]));
-    delay(DOT_LEN * 2);
-    Serial.print(str[i]);
-  }
-  Serial.println();
-  pause(5000);
-}
-
-void di() {
-  tone(TONE_PIN, TONE_HZ, DOT_LEN);
-  delay(DOT_LEN);
-  pause(SYMBOL_SPACING);
-}
-
-void dah() {
-  tone(TONE_PIN, TONE_HZ, DASH_LEN);  // start playing a tone
-  delay(DASH_LEN);               // hold in this position
-  pause(SYMBOL_SPACING);
-}
-
 void pause(int delayTime) {
   noTone(TONE_PIN);
   delay(delayTime);
-}
-
-void playMorseSequence(String morseSequence) {
-  char morseCharSeq[morseSequence.length() + 1] ;
-  morseSequence.toCharArray(morseCharSeq, morseSequence.length() + 1);
-  for (int i = 0; i < sizeof(morseCharSeq) - 1; i++) {
-    morseCharSeq[i] == '.' ? di() : dah();
-  }
 }
 
 int lengthof(char const str[]) {
@@ -219,93 +190,123 @@ bool isEqual(char ch1[], char const ch2[]) {
   return true;
 }
 
-char morseToChar(char morseStr[]) {
+void printChar(char morseStr[]) {
   if (isEqual(morseStr, MORSE_A)) {
-    return 'a';
+    Serial.print('a');
   } else if (isEqual(morseStr, MORSE_B)) {
-    return 'b';
+    Serial.print('b');
   } else if (isEqual(morseStr, MORSE_C)) {
-    return 'c';
+    Serial.print('c');
   } else if (isEqual(morseStr, MORSE_D)) {
-    return 'd';
+    Serial.print('d');
   } else if (isEqual(morseStr, MORSE_E)) {
-    return 'e';
+    Serial.print('e');
   } else if (isEqual(morseStr, MORSE_F)) {
-    return 'f';
+    Serial.print('f');
   } else if (isEqual(morseStr, MORSE_G)) {
-    return 'g';
+    Serial.print('g');
   } else if (isEqual(morseStr, MORSE_H)) {
-    return 'h';
+    Serial.print('h');
   } else if (isEqual(morseStr, MORSE_I)) {
-    return 'i';
+    Serial.print('i');
   } else if (isEqual(morseStr, MORSE_J)) {
-    return 'j';
+    Serial.print('j');
   } else if (isEqual(morseStr, MORSE_K)) {
-    return 'k';
+    Serial.print('k');
   } else if (isEqual(morseStr, MORSE_L)) {
-    return 'l';
+    Serial.print('l');
   } else if (isEqual(morseStr, MORSE_M)) {
-    return 'm';
+    Serial.print('m');
   } else if (isEqual(morseStr, MORSE_N)) {
-    return 'n';
+    Serial.print('n');
   } else if (isEqual(morseStr, MORSE_O)) {
-    return 'o';
+    Serial.print('o');
   } else if (isEqual(morseStr, MORSE_P)) {
-    return 'p';
+    Serial.print('p');
   } else if (isEqual(morseStr, MORSE_Q)) {
-    return 'q';
+    Serial.print('q');
   } else if (isEqual(morseStr, MORSE_R)) {
-    return 'r';
+    Serial.print('r');
   } else if (isEqual(morseStr, MORSE_S)) {
-    return 's';
+    Serial.print('s');
   } else if (isEqual(morseStr, MORSE_T)) {
-    return 't';
+    Serial.print('t');
   } else if (isEqual(morseStr, MORSE_U)) {
-    return 'u';
+    Serial.print('u');
   } else if (isEqual(morseStr, MORSE_V)) {
-    return 'v';
+    Serial.print('v');
   } else if (isEqual(morseStr, MORSE_W)) {
-    return 'w';
+    Serial.print('w');
   } else if (isEqual(morseStr, MORSE_X)) {
-    return 'x';
+    Serial.print('x');
   } else if (isEqual(morseStr, MORSE_Y)) {
-    return 'y';
+    Serial.print('y');
   } else if (isEqual(morseStr, MORSE_Z)) {
-    return 'z';
+    Serial.print('z');
   } else if (isEqual(morseStr, MORSE_1)) {
-    return '1';
+    Serial.print('1');
   } else if (isEqual(morseStr, MORSE_2)) {
-    return '2';
+    Serial.print('2');
   } else if (isEqual(morseStr, MORSE_3)) {
-    return '3';
+    Serial.print('3');
   } else if (isEqual(morseStr, MORSE_4)) {
-    return '4';
+    Serial.print('4');
   } else if (isEqual(morseStr, MORSE_5)) {
-    return '5';
+    Serial.print('5');
   } else if (isEqual(morseStr, MORSE_6)) {
-    return '6';
+    Serial.print('6');
   } else if (isEqual(morseStr, MORSE_7)) {
-    return '7';
+    Serial.print('7');
   } else if (isEqual(morseStr, MORSE_8)) {
-    return '8';
+    Serial.print('8');
   } else if (isEqual(morseStr, MORSE_9)) {
-    return '9';
+    Serial.print('9');
   } else if (isEqual(morseStr, MORSE_0)) {
-    return '0';
+    Serial.print('0');
   } else if (isEqual(morseStr, MORSE_PERIOD)) {
-    return '.';
+    Serial.print('.');
   } else if (isEqual(morseStr, MORSE_COMMA)) {
-    return ',';
+    Serial.print(',');
   } else if (isEqual(morseStr, MORSE_QUESTION_MARK)) {
-    return '?';
-  } else if (isEqual(morseStr, MORSE_KA)) {
-    return '>';
+    Serial.print('?');
+  } else if (isEqual(morseStr, MORSE_EQ)) {
+    Serial.print('=');
+  } else if (isEqual(morseStr, MORSE_PLUS)) {
+    Serial.print('+');
+  } else if (isEqual(morseStr, MORSE_MINUS)) {
+    Serial.print('-');
+  } else if (isEqual(morseStr, MORSE_SOS)) {
+    Serial.print(" SOS ");
+  } else if (isEqual(morseStr, MORSE_PLEASE_STOP)) {
+    Serial.print("|AS|");
+  } else if (isEqual(morseStr, MORSE_END_OF_TX)) {
+    Serial.print("|AR|");
+  } else if (isEqual(morseStr, MORSE_END_OF_WORK)) {
+    Serial.print("|SK|");
+  } else if (isEqual(morseStr, MORSE_START)) {
+    Serial.print("|KA|");
   } else if (garbageReceived) {
-    return '#';
+    Serial.print('#');
   } else {
     //    Serial.println();
     //    Serial.println(morseStr);
-    return '#';
+    Serial.print('#');
+  }
+}
+
+// ------------ functions for playing Morse mode -----------
+
+void playCodeFromSerial() {
+  if (Serial.available() > 0) {
+    String strToPlay = Serial.readString();
+    char str[strToPlay.length() + 1] ;
+    strToPlay.toCharArray(str, strToPlay.length() + 1);
+    for (int i = 0; i < sizeof(str) - 1; i++) {
+      playMorse(toLowerCase(str[i]));
+      delay(CHAR_SPACING);
+      Serial.print(str[i]);
+    }
+    Serial.println();
   }
 }
 
@@ -434,4 +435,24 @@ void playMorse(char normalChar) {
     default:
       pause(CHAR_SPACING);
   }
+}
+
+void playMorseSequence(String morseSequence) {
+  char morseCharSeq[morseSequence.length() + 1] ;
+  morseSequence.toCharArray(morseCharSeq, morseSequence.length() + 1);
+  for (int i = 0; i < sizeof(morseCharSeq) - 1; i++) {
+    morseCharSeq[i] == '.' ? di() : dah();
+  }
+}
+
+void di() {
+  tone(TONE_PIN, TONE_HZ, DOT_LEN);
+  delay(DOT_LEN);
+  pause(SYMBOL_SPACING);
+}
+
+void dah() {
+  tone(TONE_PIN, TONE_HZ, DASH_LEN);  // start playing a tone
+  delay(DASH_LEN);               // hold in this position
+  pause(SYMBOL_SPACING);
 }
