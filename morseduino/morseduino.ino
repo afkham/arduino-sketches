@@ -22,20 +22,17 @@ const int KEY_PIN = 2;       // Morse key pin
 const int MODE_SELECT_PIN = 4; // Pin for switching between Morse key input and serial input
 const int TONE_HZ = 1800;      // music TONE_HZ/pitch in Hertz
 
-void setup() {
-  pinMode(KEY_PIN, INPUT);
-  pinMode(MODE_SELECT_PIN, INPUT);
-  Serial.begin(9600);
-}
 
 // Character to Morse code mapping
-struct MorseMapping {
-  char ch[];
-  char morseSeq[];
-};
+typedef struct {
+  char ch[5];
+  char morseSeq[10];
+} MorseMapping;
+
+const int MAPPING_SIZE = 48;
 
 // Morse Alphabet
-const  MorseMapping morseMappings[] = {
+const MorseMapping morseMappings[MAPPING_SIZE] = {
   {"a", "._"}, {"b", "_..."}, {"c", "_._."}, {"d", "_.."}, {"e", "."}, {"f", ".._."}, {"g", "__."},
   {"h", "...."}, {"i", ".."}, {"j", ".___"}, {"k", "_._"}, {"l", "._.."}, {"m", "__"}, {"n", "_."},
   {"o", "___"}, {"p", ".__."}, {"q", "__._"}, {"r", "._."}, {"s", "..."}, {"t", "_"}, {"u", "_."},
@@ -45,6 +42,12 @@ const  MorseMapping morseMappings[] = {
   {".", "._._._"}, {",", "__..__"}, {"?", "..__.."}, {"=", "_..._"}, {"+", "._._."}, {"-", "_...._"}, {" ", " "},
   {"|SOS|", "...___..."}, {"|KA|", "_._._"}, {"|AS|", "._..."}, {"|AR|", "._._."}, {"|SK|", "..._._"},
 };
+
+void setup() {
+  pinMode(KEY_PIN, INPUT);
+  pinMode(MODE_SELECT_PIN, INPUT);
+  Serial.begin(9600);
+}
 
 /*
   Set the speed of your morse code
@@ -59,7 +62,7 @@ const  MorseMapping morseMappings[] = {
   4. The space between letters is 3 time units.
   5. The space between words is 7 time units.
 */
-const int DOT_LEN = 60;     // length of the morse code 'dot'
+const int DOT_LEN = 100;     // length of the morse code 'dot'
 const int DASH_LEN = DOT_LEN * 3;    // length of the morse code 'dash'
 const int SYMBOL_SPACING = DOT_LEN;  // length of the pause between elements of a character
 const int CHAR_SPACING = DOT_LEN * 3;     // length of the spaces between characters
@@ -105,10 +108,8 @@ void playOscillator() {
       } else if (!garbageReceived) {
         int now = millis();
         if (now - symbolStartedAt >= DASH_LEN) {
-          //            Serial.print("_");
           currentSymbolBuff[currentSymbolIndex++] = '_';
         } else {
-          //            Serial.print(".");
           currentSymbolBuff[currentSymbolIndex++] = '.';
         }
         symbolStartedAt = -1;
@@ -161,7 +162,7 @@ bool isEqual(char ch1[], char const ch2[]) {
 }
 
 void printChar(char morseStr[]) {
-  for (int i = 0; i < sizeof(morseMappings); i++) {
+  for (int i = 0; i < MAPPING_SIZE; i++) {
     MorseMapping mm = morseMappings[i];
     if (isEqual(morseStr, mm.morseSeq)) {
       Serial.print(mm.ch);
@@ -187,20 +188,23 @@ void playCodeFromSerial() {
   }
 }
 
-void playMorse(char normalChar) {
-  for (int i = 0; i < sizeof(morseMappings); i++) {
+void playMorse(char normalChar[]) {
+  for (int i = 0; i < MAPPING_SIZE; i++) {
     MorseMapping mm = morseMappings[i];
-    if (normalChar == mm.ch) {
+    if (normalChar == mm.ch[0]) {
       playMorseSequence(mm.morseSeq);
       return;
     }
   }
-  Serial.print('#');
 }
 
 void playMorseSequence(char morseSequence[]) {
-  for (int i = 0; i < sizeof(morseSequence) - 1; i++) {
-    morseSequence[i] == '.' ? di() : dah();
+  for (int i = 0; i < lengthof(morseSequence); i++) {
+    if (morseSequence[i] == '.') {
+      di();
+    } else if (morseSequence[i] == '_') {
+      dah();
+    }
   }
 }
 
