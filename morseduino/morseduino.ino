@@ -22,7 +22,6 @@ const int KEY_PIN = 2;       // Morse key pin
 const int MODE_SELECT_PIN = 4; // Pin for switching between Morse key input and serial input
 const int TONE_HZ = 1800;      // music TONE_HZ/pitch in Hertz
 
-
 // Character to Morse code mapping
 typedef struct {
   char ch[5];
@@ -62,7 +61,7 @@ void setup() {
   4. The space between letters is 3 time units.
   5. The space between words is 7 time units.
 */
-const int DOT_LEN = 100;     // length of the morse code 'dot'
+const int DOT_LEN = 60;     // length of the morse code 'dot'
 const int DASH_LEN = DOT_LEN * 3;    // length of the morse code 'dash'
 const int SYMBOL_SPACING = DOT_LEN;  // length of the pause between elements of a character
 const int CHAR_SPACING = DOT_LEN * 3;     // length of the spaces between characters
