@@ -28,7 +28,7 @@ typedef struct {
   char morseSeq[10];
 } MorseMapping;
 
-const int MAPPING_SIZE = 48;
+const int MAPPING_SIZE = 47;
 
 // Morse Alphabet
 const MorseMapping morseMappings[MAPPING_SIZE] = {
@@ -38,7 +38,7 @@ const MorseMapping morseMappings[MAPPING_SIZE] = {
   {"v", "..._"}, {"w", ".__"}, {"x", "_.._"}, {"y", "_.__"}, {"z", "__.."},
   {"1", ".____"}, {"2", "..___"}, {"3", "...__"}, {"4", "...._"}, {"5", "....."}, {"6", "_...."},
   {"7", "__..."}, {"8", "___.."}, {"9", "____."}, {"0", "_____"},
-  {".", "._._._"}, {",", "__..__"}, {"?", "..__.."}, {"=", "_..._"}, {"+", "._._."}, {"-", "_...._"}, {" ", " "},
+  {".", "._._._"}, {",", "__..__"}, {"?", "..__.."}, {"=", "_..._"}, {"+", "._._."}, {"-", "_...._"},
   {"<SOS>", "...___..."}, {"<KA>", "_._._"}, {"<AS>", "._..."}, {"<AR>", "._._."}, {"<SK>", "..._._"},
 };
 
@@ -165,6 +165,9 @@ void printChar(char morseStr[]) {
     MorseMapping mm = morseMappings[i];
     if (isEqual(morseStr, mm.morseSeq)) {
       Serial.print(mm.ch);
+      if (mm.ch == '=') {
+        Serial.println();
+      }
       return;
     }
   }
@@ -182,7 +185,7 @@ void playCodeFromSerial() {
       if (strToPlay[i] == '<') { // Handle joint characters
         String tmp = strToPlay.substring(i);
         int j = tmp.substring(1).indexOf('>');
-        if(j == -1) {
+        if (j == -1) {
           Serial.println("####### INVALID INPUT #######");
           return;
         }
@@ -191,8 +194,12 @@ void playCodeFromSerial() {
         Serial.print(tmp);
         i = i + j + 2;
       } else {
-        playMorse(toLowerCase(strToPlay[i]));
-        delay(CHAR_SPACING);
+        if (strToPlay[i] == ' ') {
+          delay(WORD_SPACING);
+        } else {
+          playMorse(toLowerCase(strToPlay[i]));
+          delay(CHAR_SPACING);
+        }
         Serial.print(strToPlay[i]);
         i++;
       }
