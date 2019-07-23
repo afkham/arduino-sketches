@@ -24,7 +24,7 @@ const int TONE_HZ = 1800;      // music TONE_HZ/pitch in Hertz
 
 // Character to Morse code mapping
 typedef struct {
-  char ch[5];
+  char ch[6];
   char morseSeq[10];
 } MorseMapping;
 
@@ -61,7 +61,7 @@ void setup() {
   4. The space between letters is 3 time units.
   5. The space between words is 7 time units.
 */
-const int DOT_LEN = 60;     // length of the morse code 'dot'
+const int DOT_LEN = 80;     // length of the morse code 'dot'
 const int DASH_LEN = DOT_LEN * 3;    // length of the morse code 'dash'
 const int SYMBOL_SPACING = DOT_LEN;  // length of the pause between elements of a character
 const int CHAR_SPACING = DOT_LEN * 3;     // length of the spaces between characters
@@ -176,12 +176,26 @@ void printChar(char morseStr[]) {
 void playCodeFromSerial() {
   if (Serial.available() > 0) {
     String strToPlay = Serial.readString();
-    char str[strToPlay.length() + 1] ;
-    strToPlay.toCharArray(str, strToPlay.length() + 1);
-    for (int i = 0; i < sizeof(str) - 1; i++) {
-      playMorse(toLowerCase(str[i]));
-      delay(CHAR_SPACING);
-      Serial.print(str[i]);
+    int i = 0;
+    int len = strToPlay.length();
+    while (i < len) {
+      if (strToPlay[i] == '|') { // Handle joint characters
+        String tmp = strToPlay.substring(i);
+        int j = tmp.substring(1).indexOf('|');
+        if(j == -1) {
+          Serial.println("####### INVALID INPUT #######");
+          return;
+        }
+        tmp = tmp.substring(0, j + 2);
+        playMorse(tmp);
+        Serial.print(tmp);
+        i = i + j + 2;
+      } else {
+        playMorse(toLowerCase(strToPlay[i]));
+        delay(CHAR_SPACING);
+        Serial.print(strToPlay[i]);
+        i++;
+      }
     }
     Serial.println();
   }
@@ -191,6 +205,17 @@ void playMorse(char normalChar[]) {
   for (int i = 0; i < MAPPING_SIZE; i++) {
     MorseMapping mm = morseMappings[i];
     if (normalChar == mm.ch[0]) {
+      playMorseSequence(mm.morseSeq);
+      return;
+    }
+  }
+}
+
+void playMorse(String normalChar) {
+  for (int i = 0; i < MAPPING_SIZE; i++) {
+    MorseMapping mm = morseMappings[i];
+    String str = mm.ch;
+    if (normalChar == str) {
       playMorseSequence(mm.morseSeq);
       return;
     }
