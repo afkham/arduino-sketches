@@ -20,7 +20,7 @@
 const int TONE_PIN = 8;      // output audio on pin 8
 const int KEY_PIN = 2;       // Morse key pin
 const int MODE_SELECT_PIN = 4; // Pin for switching between Morse key input and serial input
-const int TONE_HZ = 1800;      // music TONE_HZ/pitch in Hertz
+const int TONE_HZ = 1850;      // music TONE_HZ/pitch in Hertz
 
 // Character to Morse code mapping
 typedef struct {
