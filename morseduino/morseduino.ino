@@ -39,7 +39,7 @@ const MorseMapping morseMappings[MAPPING_SIZE] = {
   {"1", ".____"}, {"2", "..___"}, {"3", "...__"}, {"4", "...._"}, {"5", "....."}, {"6", "_...."},
   {"7", "__..."}, {"8", "___.."}, {"9", "____."}, {"0", "_____"},
   {".", "._._._"}, {",", "__..__"}, {"?", "..__.."}, {"=", "_..._"}, {"+", "._._."}, {"-", "_...._"}, {" ", " "},
-  {"|SOS|", "...___..."}, {"|KA|", "_._._"}, {"|AS|", "._..."}, {"|AR|", "._._."}, {"|SK|", "..._._"},
+  {"<SOS>", "...___..."}, {"<KA>", "_._._"}, {"<AS>", "._..."}, {"<AR>", "._._."}, {"<SK>", "..._._"},
 };
 
 void setup() {
@@ -179,9 +179,9 @@ void playCodeFromSerial() {
     int i = 0;
     int len = strToPlay.length();
     while (i < len) {
-      if (strToPlay[i] == '|') { // Handle joint characters
+      if (strToPlay[i] == '<') { // Handle joint characters
         String tmp = strToPlay.substring(i);
-        int j = tmp.substring(1).indexOf('|');
+        int j = tmp.substring(1).indexOf('>');
         if(j == -1) {
           Serial.println("####### INVALID INPUT #######");
           return;
