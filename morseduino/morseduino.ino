@@ -16,10 +16,15 @@
   specific language governing permissions and limitations
   under the License.
 */
+#include <EEPROM.h>
 
+const int SPEED_ENC_PIN_A = 13;
+const int SPEED_ENC_PIN_B = 12;
+const int SPEED_ADDR = 0;
 const int TONE_PIN = 8;      // output audio on pin 8
 const int KEY_PIN = 2;       // Morse key pin
 const int MODE_SELECT_PIN = 4; // Pin for switching between Morse key input and serial input
+const int SPEED_PIN = A0;    // select the input pin for the potentiometer
 const int TONE_HZ = 1850;      // music TONE_HZ/pitch in Hertz
 
 // Character to Morse code mapping
@@ -45,13 +50,23 @@ const MorseMapping morseMappings[MAPPING_SIZE] = {
 void setup() {
   pinMode(KEY_PIN, INPUT);
   pinMode(MODE_SELECT_PIN, INPUT);
+  pinMode(SPEED_ENC_PIN_A, INPUT);
+  pinMode(SPEED_ENC_PIN_B, INPUT);
   Serial.begin(9600);
+  _init();
+}
+
+int morseKeyState; // the current reading from the Morse key
+
+void loop() {
+  setSpeed();
+  digitalRead(MODE_SELECT_PIN) ? playCodeFromSerial() : playOscillator();
 }
 
 /*
   Set the speed of your morse code
-  Adjust the DOT_LEN length to speed up or slow down your morse code
-    (all of the other lengths are based on the DOT_LEN)
+  Adjust the dotLen length to speed up or slow down your morse code
+    (all of the other lengths are based on the dotLen)
 
   There are rules to help people distinguish dots from dashes in Morse code.
 
@@ -61,16 +76,54 @@ void setup() {
   4. The space between letters is 3 time units.
   5. The space between words is 7 time units.
 */
-const int DOT_LEN = 70;     // length of the morse code 'dot'
-const int DASH_LEN = DOT_LEN * 3;    // length of the morse code 'dash'
-const int SYMBOL_SPACING = DOT_LEN;  // length of the pause between elements of a character
-const int CHAR_SPACING = DOT_LEN * 3;     // length of the spaces between characters
-const int WORD_SPACING = DOT_LEN * 7;  // length of the pause between words
+int dotLen;     // length of the morse code 'dot'
+int dashLen;    // length of the morse code 'dash'
+int symbolSpacing; // length of the pause between elements of a character
+int charSpacing; // length of the spaces between characters
+int wordSpacing; // length of the pause between words
 
-int morseKeyState;             // the current reading from the Morse key
+int encoderPos = 0;
 
-void loop() {
-  digitalRead(MODE_SELECT_PIN) ? playCodeFromSerial() : playOscillator();
+void _init() {
+  int dl = EEPROM.read(SPEED_ADDR);
+  Serial.println(dl);
+  if (dl == 0) {
+    encoderPos = 30;
+    EEPROM.write(SPEED_ADDR, encoderPos);
+    
+  }
+  dotLen = 40 + encoderPos;
+  dashLen = dotLen * 3;
+  symbolSpacing = dotLen;
+  charSpacing = dotLen * 3;
+  wordSpacing = dotLen * 7;
+  printSpeed();
+}
+
+int encoderPinALast = LOW;
+
+void setSpeed() {
+  int n = digitalRead(SPEED_ENC_PIN_A);
+  if (encoderPinALast == LOW && n == HIGH) {
+    if (digitalRead(SPEED_ENC_PIN_B) == LOW) {
+      encoderPos--;
+    } else {
+      encoderPos++;
+    }
+    if (encoderPos >= 80) encoderPos = 80; else if (encoderPos <= 0) encoderPos = 0;
+    dotLen = 40 + encoderPos;
+    dashLen = dotLen * 3;
+    symbolSpacing = dotLen;
+    charSpacing = dotLen * 3;
+    wordSpacing = dotLen * 7;
+    EEPROM.put(SPEED_ADDR, encoderPos);
+    printSpeed();
+  }
+  encoderPinALast = n;
+}
+
+void printSpeed() {
+  Serial.print("Speed="); Serial.println((float)1200 / dotLen);
 }
 
 // ------------ functions for oscillator mode -----------
@@ -106,7 +159,7 @@ void playOscillator() {
         garbageReceived = true;
       } else if (!garbageReceived) {
         int now = millis();
-        if (now - symbolStartedAt >= DASH_LEN) {
+        if (now - symbolStartedAt >= dashLen) {
           currentSymbolBuff[currentSymbolIndex++] = '_';
         } else {
           currentSymbolBuff[currentSymbolIndex++] = '.';
@@ -117,10 +170,10 @@ void playOscillator() {
       }
     }
     int now = millis();
-    if (lastCharReceivedAt != -1 && now - lastCharReceivedAt > WORD_SPACING) { // Have we completed a word?
+    if (lastCharReceivedAt != -1 && now - lastCharReceivedAt > wordSpacing) { // Have we completed a word?
       Serial.print(" ");
       lastCharReceivedAt = -1;
-    } else if (lastSymbolReceivedAt != -1 && now - lastSymbolReceivedAt > CHAR_SPACING) { // Have we completed a character?
+    } else if (lastSymbolReceivedAt != -1 && now - lastSymbolReceivedAt > charSpacing) { // Have we completed a character?
       printChar(currentSymbolBuff);
       garbageReceived = false;
       resetCurrentSymbolBuff();
@@ -195,10 +248,10 @@ void playCodeFromSerial() {
         i = i + j + 2;
       } else {
         if (strToPlay[i] == ' ') {
-          delay(WORD_SPACING);
+          delay(wordSpacing);
         } else {
           playMorse(toLowerCase(strToPlay[i]));
-          delay(CHAR_SPACING);
+          delay(charSpacing);
         }
         Serial.print(strToPlay[i]);
         if (strToPlay[i] == '=') {
@@ -243,13 +296,13 @@ void playMorseSequence(char morseSequence[]) {
 }
 
 void di() {
-  tone(TONE_PIN, TONE_HZ, DOT_LEN);
-  delay(DOT_LEN);
-  pause(SYMBOL_SPACING);
+  tone(TONE_PIN, TONE_HZ, dotLen);
+  delay(dotLen);
+  pause(symbolSpacing);
 }
 
 void dah() {
-  tone(TONE_PIN, TONE_HZ, DASH_LEN);  // start playing a tone
-  delay(DASH_LEN);               // hold in this position
-  pause(SYMBOL_SPACING);
+  tone(TONE_PIN, TONE_HZ, dashLen);  // start playing a tone
+  delay(dashLen);               // hold in this position
+  pause(symbolSpacing);
 }
