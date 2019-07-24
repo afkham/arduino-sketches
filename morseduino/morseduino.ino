@@ -61,7 +61,7 @@ void setup() {
   4. The space between letters is 3 time units.
   5. The space between words is 7 time units.
 */
-const int DOT_LEN = 80;     // length of the morse code 'dot'
+const int DOT_LEN = 70;     // length of the morse code 'dot'
 const int DASH_LEN = DOT_LEN * 3;    // length of the morse code 'dash'
 const int SYMBOL_SPACING = DOT_LEN;  // length of the pause between elements of a character
 const int CHAR_SPACING = DOT_LEN * 3;     // length of the spaces between characters
@@ -165,7 +165,7 @@ void printChar(char morseStr[]) {
     MorseMapping mm = morseMappings[i];
     if (isEqual(morseStr, mm.morseSeq)) {
       Serial.print(mm.ch);
-      if (mm.ch == '=') {
+      if (isEqual(mm.ch, "=")) {
         Serial.println();
       }
       return;
@@ -201,6 +201,9 @@ void playCodeFromSerial() {
           delay(CHAR_SPACING);
         }
         Serial.print(strToPlay[i]);
+        if (strToPlay[i] == '=') {
+          Serial.println();
+        }
         i++;
       }
     }
