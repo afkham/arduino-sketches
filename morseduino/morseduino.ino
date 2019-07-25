@@ -89,7 +89,7 @@ void _init() {
   dotLen = EEPROM.read(DOT_LEN_ADDR);
   encoderPinALast = EEPROM.read(ENCODER_PIN_LAST_ADDR);
   setSpeedDefaults();
-  printSpeed();
+  configureWordSpeed();
 }
 
 void setSpeed() {
