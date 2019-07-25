@@ -20,7 +20,8 @@
 
 const int SPEED_ENC_PIN_A = 13;
 const int SPEED_ENC_PIN_B = 12;
-const int SPEED_ADDR = 0;
+const int DOT_LEN_ADDR = 0; 
+const int ENCODER_PIN_LAST_ADDR = 1;
 const int TONE_PIN = 8;      // output audio on pin 8
 const int KEY_PIN = 2;       // Morse key pin
 const int MODE_SELECT_PIN = 4; // Pin for switching between Morse key input and serial input
@@ -82,48 +83,46 @@ int symbolSpacing; // length of the pause between elements of a character
 int charSpacing; // length of the spaces between characters
 int wordSpacing; // length of the pause between words
 
-int encoderPos = 0;
+int encoderPinALast = LOW;
 
 void _init() {
-  int dl = EEPROM.read(SPEED_ADDR);
-  Serial.println(dl);
-  if (dl == 0) {
-    encoderPos = 30;
-    EEPROM.write(SPEED_ADDR, encoderPos);
-    
-  }
-  dotLen = 40 + encoderPos;
-  dashLen = dotLen * 3;
-  symbolSpacing = dotLen;
-  charSpacing = dotLen * 3;
-  wordSpacing = dotLen * 7;
+  dotLen = EEPROM.read(DOT_LEN_ADDR);
+  encoderPinALast = EEPROM.read(ENCODER_PIN_LAST_ADDR);
+  setSpeedDefaults();
   printSpeed();
 }
-
-int encoderPinALast = LOW;
 
 void setSpeed() {
   int n = digitalRead(SPEED_ENC_PIN_A);
   if (encoderPinALast == LOW && n == HIGH) {
     if (digitalRead(SPEED_ENC_PIN_B) == LOW) {
-      encoderPos--;
+      dotLen -= dotLen/20;
     } else {
-      encoderPos++;
+      dotLen += dotLen/20;
     }
-    if (encoderPos >= 80) encoderPos = 80; else if (encoderPos <= 0) encoderPos = 0;
-    dotLen = 40 + encoderPos;
-    dashLen = dotLen * 3;
-    symbolSpacing = dotLen;
-    charSpacing = dotLen * 3;
-    wordSpacing = dotLen * 7;
-    EEPROM.put(SPEED_ADDR, encoderPos);
-    printSpeed();
+    setSpeedDefaults();
+    Serial.println(dotLen);
+    configureWordSpeed();
   }
   encoderPinALast = n;
+  EEPROM.write(ENCODER_PIN_LAST_ADDR, encoderPinALast);
+}
+
+void setSpeedDefaults() {
+  if (dotLen >= 150) dotLen = 150; else if (dotLen <= 20) dotLen = 20;
+}
+
+void configureWordSpeed() {
+  dashLen = dotLen * 3;
+  symbolSpacing = dotLen;
+  charSpacing = dotLen * 3;
+  wordSpacing = dotLen * 7;
+  EEPROM.write(DOT_LEN_ADDR, dotLen);
+  printSpeed();
 }
 
 void printSpeed() {
-  Serial.print("Speed="); Serial.println((float)1200 / dotLen);
+  Serial.print("Speed="); Serial.println(round((float)1000 / dotLen));
 }
 
 // ------------ functions for oscillator mode -----------
