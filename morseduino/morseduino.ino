@@ -16,25 +16,16 @@
   specific language governing permissions and limitations
   under the License.
 */
-
-/**
- * A simple Morse code oscillator and player on the Arduino platform. 
- * The capabilities of this device include translating text input from 
- * a serial terminal to Morse code sound output in addition to working as an oscillator. 
- * 
- * https://me.afkham.org/morse-code-on-arduino-morseduino-a92f9c557aa1
- */
 #include <EEPROM.h>
 
-const int SPEED_ENC_PIN_A = 13; // Morse speed encoder pin A
-const int SPEED_ENC_PIN_B = 12; // Morse speed encoder pin B
-const int DOT_LEN_ADDR = 0; // EEPROM address where the Morse dot length is stored. This is adjusted using the encoder
-const int ENCODER_PIN_LAST_ADDR = 1; // EEPROM address where the encoder pin's last state is stored
-const int TONE_PIN = 8;      // output audio on pin 8
-const int KEY_PIN = 2;       // Morse key pin
-const int MODE_SELECT_PIN = 4; // Pin for switching between Morse key input and serial input
-const int SPEED_PIN = A0;    // select the input pin for the potentiometer
-const int TONE_HZ = 1800;      // music TONE_HZ/pitch in Hertz
+#define SPEED_ENC_PIN_A 13 // Morse speed encoder pin A
+#define SPEED_ENC_PIN_B 12 // Morse speed encoder pin B
+#define DOT_LEN_ADDR 0 // EEPROM address where the Morse dot length is stored. This is adjusted using the encoder
+#define ENCODER_PIN_LAST_ADDR 1 // EEPROM address where the encoder pin's last state is stored
+#define TONE_PIN 8      // output audio on pin 8
+#define KEY_PIN 2       // Morse key pin
+#define MODE_SELECT_PIN 4 // Pin for switching between Morse key input and serial input
+#define TONE_HZ 1800      // music TONE_HZ/pitch in Hertz
 
 // Character to Morse code mapping
 typedef struct {
@@ -42,7 +33,7 @@ typedef struct {
   char morseSeq[10];
 } MorseMapping;
 
-const int MAPPING_SIZE = 47;
+#define MAPPING_SIZE 47
 
 // Morse Alphabet
 const MorseMapping morseMappings[MAPPING_SIZE] = {
