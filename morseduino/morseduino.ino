@@ -16,12 +16,20 @@
   specific language governing permissions and limitations
   under the License.
 */
+
+/**
+ * A simple Morse code oscillator and player on the Arduino platform. 
+ * The capabilities of this device include translating text input from 
+ * a serial terminal to Morse code sound output in addition to working as an oscillator. 
+ * 
+ * https://me.afkham.org/morse-code-on-arduino-morseduino-a92f9c557aa1
+ */
 #include <EEPROM.h>
 
-const int SPEED_ENC_PIN_A = 13;
-const int SPEED_ENC_PIN_B = 12;
-const int DOT_LEN_ADDR = 0; 
-const int ENCODER_PIN_LAST_ADDR = 1;
+const int SPEED_ENC_PIN_A = 13; // Morse speed encoder pin A
+const int SPEED_ENC_PIN_B = 12; // Morse speed encoder pin B
+const int DOT_LEN_ADDR = 0; // EEPROM address where the Morse dot length is stored. This is adjusted using the encoder
+const int ENCODER_PIN_LAST_ADDR = 1; // EEPROM address where the encoder pin's last state is stored
 const int TONE_PIN = 8;      // output audio on pin 8
 const int KEY_PIN = 2;       // Morse key pin
 const int MODE_SELECT_PIN = 4; // Pin for switching between Morse key input and serial input
