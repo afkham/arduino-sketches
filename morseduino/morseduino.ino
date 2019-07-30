@@ -17,6 +17,31 @@
   under the License.
 */
 #include <EEPROM.h>
+#include <SPI.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+#include <Arduino.h>  // for type definitions
+
+/* 
+ *  The following template is used for reading from PROGMEM
+ *  See: https://arduino.stackexchange.com/questions/13545/using-progmem-to-store-array-of-structs
+ */
+template <typename T> void PROGMEM_readAnything (const T * sce, T& dest) {
+  memcpy_P (&dest, sce, sizeof (T));
+}
+
+/* 
+ * Number of items in an array
+ */
+template< typename T, size_t N > size_t ArraySize (T (&) [N]){ return N; }
+
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 64 // OLED display height, in pixels
+
+// Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
+#define OLED_RESET     -1 // Reset pin # (or -1 if sharing Arduino reset pin)
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 const int SPEED_ENC_PIN_A = 13;
 const int SPEED_ENC_PIN_B = 12;
@@ -34,10 +59,8 @@ typedef struct {
   char morseSeq[10];
 } MorseMapping;
 
-const int MAPPING_SIZE = 47;
-
 // Morse Alphabet
-const MorseMapping morseMappings[MAPPING_SIZE] = {
+const MorseMapping morseMappings[47] PROGMEM = {
   {"a", "._"}, {"b", "_..."}, {"c", "_._."}, {"d", "_.."}, {"e", "."}, {"f", ".._."}, {"g", "__."},
   {"h", "...."}, {"i", ".."}, {"j", ".___"}, {"k", "_._"}, {"l", "._.."}, {"m", "__"}, {"n", "_."},
   {"o", "___"}, {"p", ".__."}, {"q", "__._"}, {"r", "._."}, {"s", "..."}, {"t", "_"}, {"u", "_."},
@@ -54,6 +77,11 @@ void setup() {
   pinMode(SPEED_ENC_PIN_A, INPUT);
   pinMode(SPEED_ENC_PIN_B, INPUT);
   Serial.begin(9600);
+  // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
+  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3C for 128x32
+    Serial.println(F("SSD1306 allocation failed"));
+    for(;;); // Don't proceed, loop forever
+  }
   _init();
 }
 
@@ -62,6 +90,33 @@ int morseKeyState; // the current reading from the Morse key
 void loop() {
   setSpeed();
   digitalRead(MODE_SELECT_PIN) ? playCodeFromSerial() : playOscillator();
+}
+
+void showText(String text) {
+  display.clearDisplay();
+
+  display.setTextSize(2); // Draw 2X-scale text
+  display.setTextColor(WHITE);
+  display.setCursor(10, 0);
+  display.println(text);
+  display.display();      // Show initial text
+//  delay(100);
+//
+//  // Scroll in various directions, pausing in-between:
+//  display.startscrollright(0x00, 0x0F);
+//  delay(2000);
+//  display.stopscroll();
+//  delay(1000);
+//  display.startscrollleft(0x00, 0x0F);
+//  delay(2000);
+//  display.stopscroll();
+//  delay(1000);
+//  display.startscrolldiagright(0x00, 0x07);
+//  delay(2000);
+//  display.startscrolldiagleft(0x00, 0x07);
+//  delay(2000);
+//  display.stopscroll();
+//  delay(1000);
 }
 
 /*
@@ -101,7 +156,6 @@ void setSpeed() {
       dotLen += dotLen/20;
     }
     setSpeedDefaults();
-    Serial.println(dotLen);
     configureWordSpeed();
   }
   encoderPinALast = n;
@@ -122,7 +176,11 @@ void configureWordSpeed() {
 }
 
 void printSpeed() {
-  Serial.print("Speed="); Serial.println(round((float)1000 / dotLen));
+  int wpm = round((float)1000 / dotLen);
+  String wpmText = "Speed: ";
+  wpmText.concat(wpm);
+  Serial.println(wpmText); 
+  showText(wpmText);
 }
 
 // ------------ functions for oscillator mode -----------
@@ -170,7 +228,7 @@ void playOscillator() {
     }
     int now = millis();
     if (lastCharReceivedAt != -1 && now - lastCharReceivedAt > wordSpacing) { // Have we completed a word?
-      Serial.print(" ");
+      Serial.print(F(" "));
       lastCharReceivedAt = -1;
     } else if (lastSymbolReceivedAt != -1 && now - lastSymbolReceivedAt > charSpacing) { // Have we completed a character?
       printChar(currentSymbolBuff);
@@ -213,8 +271,9 @@ bool isEqual(char ch1[], char const ch2[]) {
 }
 
 void printChar(char morseStr[]) {
-  for (int i = 0; i < MAPPING_SIZE; i++) {
-    MorseMapping mm = morseMappings[i];
+  for (int i = 0; i < ArraySize(morseMappings); i++) {
+    MorseMapping mm;
+    PROGMEM_readAnything (&morseMappings[i], mm);
     if (isEqual(morseStr, mm.morseSeq)) {
       Serial.print(mm.ch);
       if (isEqual(mm.ch, "=")) {
@@ -238,7 +297,7 @@ void playCodeFromSerial() {
         String tmp = strToPlay.substring(i);
         int j = tmp.substring(1).indexOf('>');
         if (j == -1) {
-          Serial.println("####### INVALID INPUT #######");
+          Serial.println(F("####### INVALID INPUT #######"));
           return;
         }
         tmp = tmp.substring(0, j + 2);
@@ -264,8 +323,9 @@ void playCodeFromSerial() {
 }
 
 void playMorse(char normalChar[]) {
-  for (int i = 0; i < MAPPING_SIZE; i++) {
-    MorseMapping mm = morseMappings[i];
+  for (int i = 0; i < ArraySize(morseMappings); i++) {
+    MorseMapping mm;
+    PROGMEM_readAnything (&morseMappings[i], mm);
     if (normalChar == mm.ch[0]) {
       playMorseSequence(mm.morseSeq);
       return;
@@ -274,8 +334,9 @@ void playMorse(char normalChar[]) {
 }
 
 void playMorse(String normalChar) {
-  for (int i = 0; i < MAPPING_SIZE; i++) {
-    MorseMapping mm = morseMappings[i];
+  for (int i = 0; i < ArraySize(morseMappings); i++) {
+    MorseMapping mm;
+    PROGMEM_readAnything (&morseMappings[i], mm);
     String str = mm.ch;
     if (normalChar == str) {
       playMorseSequence(mm.morseSeq);
