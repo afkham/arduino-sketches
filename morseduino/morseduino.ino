@@ -160,8 +160,10 @@ void checkRotary() {
     Serial.println("Pushed");
     if (rotaryMode == MODE_WPM) {
       rotaryMode = MODE_TONE;
+      configureTone();
     } else if (rotaryMode == MODE_TONE) {
       rotaryMode = MODE_WPM;
+      configureWpm();
     }
   } else if ( push == 2 ) { // long pushed
     Serial.println("Long Pushed");
@@ -172,6 +174,7 @@ void checkRotary() {
   byte rotated = rotary.rotate();
 
   if ( rotated == 1 ) { // CW
+    Serial.println(rotaryMode);
     if (rotaryMode == MODE_WPM) {
       dotLen -= dotLen / 20;
       setWpmDefaults();
@@ -179,8 +182,10 @@ void checkRotary() {
     } else if (rotaryMode == MODE_TONE) {
       toneHz += 50;
       setToneDefaults();
+      configureTone();
     }
   } else if ( rotated == 2 ) { // CCW
+    Serial.println(rotaryMode);
     if (rotaryMode == MODE_WPM) {
       dotLen += dotLen / 20;
       setWpmDefaults();
@@ -188,6 +193,7 @@ void checkRotary() {
     } else if (rotaryMode == MODE_TONE) {
       toneHz -= 50;
       setToneDefaults();
+      configureTone();
     }
   }
 }
