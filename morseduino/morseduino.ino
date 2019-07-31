@@ -19,22 +19,23 @@
 #include <EEPROM.h>
 #include <SPI.h>
 #include <Wire.h>
-#include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-#include <Arduino.h>  // for type definitions
+#include <SimpleRotary.h>
 
-/* 
- *  The following template is used for reading from PROGMEM
- *  See: https://arduino.stackexchange.com/questions/13545/using-progmem-to-store-array-of-structs
- */
+/*
+    The following template is used for reading from PROGMEM
+    See: https://arduino.stackexchange.com/questions/13545/using-progmem-to-store-array-of-structs
+*/
 template <typename T> void PROGMEM_readAnything (const T * sce, T& dest) {
   memcpy_P (&dest, sce, sizeof (T));
 }
 
-/* 
- * Number of items in an array
- */
-template< typename T, size_t N > size_t ArraySize (T (&) [N]){ return N; }
+/*
+   Number of items in an array
+*/
+template< typename T, size_t N > size_t ArraySize (T (&) [N]) {
+  return N;
+}
 
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
@@ -43,15 +44,19 @@ template< typename T, size_t N > size_t ArraySize (T (&) [N]){ return N; }
 #define OLED_RESET     -1 // Reset pin # (or -1 if sharing Arduino reset pin)
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
-const int SPEED_ENC_PIN_A = 13;
-const int SPEED_ENC_PIN_B = 12;
-const int DOT_LEN_ADDR = 0; 
-const int ENCODER_PIN_LAST_ADDR = 1;
-const int TONE_PIN = 8;      // output audio on pin 8
-const int KEY_PIN = 2;       // Morse key pin
-const int MODE_SELECT_PIN = 4; // Pin for switching between Morse key input and serial input
-const int SPEED_PIN = A0;    // select the input pin for the potentiometer
-const int TONE_HZ = 1800;      // music TONE_HZ/pitch in Hertz
+#define SPEED_ENC_PIN_A 13
+#define SPEED_ENC_PIN_B 12
+#define SPEED_ENC_PIN_BUTTON 11
+#define DOT_LEN_ADDR 0
+#define TONE_HZ_ADDR 1
+#define TONE_PIN 8      // output audio on pin 8
+#define KEY_PIN 2       // Morse key pin
+#define MODE_SELECT_PIN 4 // Pin for switching between Morse key input and serial input
+
+int toneHz = 1850;      // music tone/pitch in Hertz
+
+// Pin A, Pin B, Button Pin
+SimpleRotary rotary(SPEED_ENC_PIN_A, SPEED_ENC_PIN_B, SPEED_ENC_PIN_BUTTON);
 
 // Character to Morse code mapping
 typedef struct {
@@ -78,9 +83,9 @@ void setup() {
   pinMode(SPEED_ENC_PIN_B, INPUT);
   Serial.begin(9600);
   // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
-  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3C for 128x32
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
     Serial.println(F("SSD1306 allocation failed"));
-    for(;;); // Don't proceed, loop forever
+    for (;;); // Don't proceed, loop forever
   }
   _init();
 }
@@ -88,35 +93,27 @@ void setup() {
 int morseKeyState; // the current reading from the Morse key
 
 void loop() {
-  setSpeed();
-  digitalRead(MODE_SELECT_PIN) ? playCodeFromSerial() : playOscillator();
+  checkRotary();
+  digitalRead(MODE_SELECT_PIN) ? morseEncode() : morseDecode();
 }
 
-void showText(String text) {
+void showProgress(String text, int val, int maxVal) {
   display.clearDisplay();
 
   display.setTextSize(2); // Draw 2X-scale text
   display.setTextColor(WHITE);
-  display.setCursor(10, 0);
+  display.setCursor(50, 5);
   display.println(text);
-  display.display();      // Show initial text
-//  delay(100);
-//
-//  // Scroll in various directions, pausing in-between:
-//  display.startscrollright(0x00, 0x0F);
-//  delay(2000);
-//  display.stopscroll();
-//  delay(1000);
-//  display.startscrollleft(0x00, 0x0F);
-//  delay(2000);
-//  display.stopscroll();
-//  delay(1000);
-//  display.startscrolldiagright(0x00, 0x07);
-//  delay(2000);
-//  display.startscrolldiagleft(0x00, 0x07);
-//  delay(2000);
-//  display.stopscroll();
-//  delay(1000);
+  display.setCursor(60, 25);
+  display.println(val);
+
+  display.drawRect(15, 50, 100, 5, WHITE);
+  display.fillRect(15, 50, round(100 * val / maxVal), 5, WHITE);
+  for (int i = 0; i < 90; i += 10) {
+    display.drawPixel(25 + i, 55, WHITE);
+  }
+
+  display.display();
 }
 
 /*
@@ -142,45 +139,94 @@ int encoderPinALast = LOW;
 
 void _init() {
   dotLen = EEPROM.read(DOT_LEN_ADDR);
-  encoderPinALast = EEPROM.read(ENCODER_PIN_LAST_ADDR);
-  setSpeedDefaults();
-  configureWordSpeed();
+  toneHz = EEPROM.read(TONE_HZ_ADDR);
+  setWpmDefaults();
+  configureWpm();
+
+  setToneDefaults();
+  configureTone();
 }
 
-void setSpeed() {
-  int n = digitalRead(SPEED_ENC_PIN_A);
-  if (encoderPinALast == LOW && n == HIGH) {
-    if (digitalRead(SPEED_ENC_PIN_B) == LOW) {
-      dotLen -= dotLen/20;
-    } else {
-      dotLen += dotLen/20;
+#define MODE_WPM 11
+#define MODE_TONE 15
+
+int rotaryMode = MODE_WPM;
+
+void checkRotary() {
+  // 0 = not pushed, 1 = pushed, 2 = long pushed
+  byte push = rotary.pushType(1000); // number of milliseconds button has to be pushed for it to be considered a long push.
+
+  if ( push == 1 ) { // pushed
+    Serial.println("Pushed");
+    if (rotaryMode == MODE_WPM) {
+      rotaryMode = MODE_TONE;
+    } else if (rotaryMode == MODE_TONE) {
+      rotaryMode = MODE_WPM;
     }
-    setSpeedDefaults();
-    configureWordSpeed();
+  } else if ( push == 2 ) { // long pushed
+    Serial.println("Long Pushed");
+    // TODO: Toggle between Welcome screen and settings screen
   }
-  encoderPinALast = n;
-  EEPROM.write(ENCODER_PIN_LAST_ADDR, encoderPinALast);
+
+  // 0 = not turning, 1 = CW, 2 = CCW
+  byte rotated = rotary.rotate();
+
+  if ( rotated == 1 ) { // CW
+    if (rotaryMode == MODE_WPM) {
+      dotLen -= dotLen / 20;
+      setWpmDefaults();
+      configureWpm();
+    } else if (rotaryMode == MODE_TONE) {
+      toneHz += 50;
+      setToneDefaults();
+    }
+  } else if ( rotated == 2 ) { // CCW
+    if (rotaryMode == MODE_WPM) {
+      dotLen += dotLen / 20;
+      setWpmDefaults();
+      configureWpm();
+    } else if (rotaryMode == MODE_TONE) {
+      toneHz -= 50;
+      setToneDefaults();
+    }
+  }
 }
 
-void setSpeedDefaults() {
+void setWpmDefaults() {
   if (dotLen >= 150) dotLen = 150; else if (dotLen <= 20) dotLen = 20;
 }
 
-void configureWordSpeed() {
+void configureWpm() {
   dashLen = dotLen * 3;
   symbolSpacing = dotLen;
   charSpacing = dotLen * 3;
   wordSpacing = dotLen * 7;
   EEPROM.write(DOT_LEN_ADDR, dotLen);
-  printSpeed();
+  printWpm();
 }
 
-void printSpeed() {
+void printWpm() {
   int wpm = round((float)1000 / dotLen);
-  String wpmText = "Speed: ";
+  String wpmText = "WPM: ";
   wpmText.concat(wpm);
-  Serial.println(wpmText); 
-  showText(wpmText);
+  Serial.println(wpmText);
+  showProgress("WPM", wpm, 50);
+}
+
+void configureTone() {
+  EEPROM.write(TONE_HZ_ADDR, toneHz);
+  printTone();
+}
+
+void setToneDefaults() {
+  if (toneHz >= 2200) toneHz = 2200; else if (toneHz <= 1200) toneHz = 1200;
+}
+
+void printTone() {
+  String toneText = "Tone(Hz): ";
+  toneText.concat(toneHz);
+  Serial.println(toneText);
+  showProgress("Tone", toneHz, 1000);
 }
 
 // ------------ functions for oscillator mode -----------
@@ -201,14 +247,14 @@ char currentSymbolBuff[MAX_SYMBOLS]; // Maximum possible symbols in Morse code i
 int currentSymbolIndex = 0; // index to the currentSymbolBuff
 bool garbageReceived = false; // Indicates whether the received symbol sequence is invalid
 
-void playOscillator() {
+void morseDecode() {
   morseKeyState = digitalRead(KEY_PIN);
   if (morseKeyState == HIGH) {
     int now = millis();
     if (symbolStartedAt == -1) {
       symbolStartedAt = now;
     }
-    tone(TONE_PIN, TONE_HZ);
+    tone(TONE_PIN, toneHz);
   } else {
     noTone(TONE_PIN);
     if (symbolStartedAt != -1) {
@@ -287,7 +333,7 @@ void printChar(char morseStr[]) {
 
 // ------------ functions for playing Morse mode -----------
 
-void playCodeFromSerial() {
+void morseEncode() {
   if (Serial.available() > 0) {
     String strToPlay = Serial.readString();
     int i = 0;
@@ -356,13 +402,13 @@ void playMorseSequence(char morseSequence[]) {
 }
 
 void di() {
-  tone(TONE_PIN, TONE_HZ, dotLen);
+  tone(TONE_PIN, toneHz, dotLen);
   delay(dotLen);
   pause(symbolSpacing);
 }
 
 void dah() {
-  tone(TONE_PIN, TONE_HZ, dashLen);  // start playing a tone
+  tone(TONE_PIN, toneHz, dashLen);  // start playing a tone
   delay(dashLen);               // hold in this position
   pause(symbolSpacing);
 }
