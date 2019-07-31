@@ -142,10 +142,10 @@ void showProgress(String text, int val, int maxVal) {
   display.setCursor(15, 32);
   display.println(val);
 
-  display.drawRect(15, 50, 100, 5, WHITE);
-  display.fillRect(15, 50, round((float) 100 * val / maxVal), 5, WHITE);
-  for (int i = 0; i < 90; i += 10) {
-    display.drawPixel(25 + i, 55, WHITE);
+  display.drawRect(15, 55, 100, 5, WHITE);
+  display.fillRect(15, 55, round((float) 100 * val / maxVal), 5, WHITE);
+  for (byte i = 0; i < 90; i += 10) {
+    display.drawPixel(25 + i, 60, WHITE);
   }
 
   display.display();
@@ -179,11 +179,11 @@ void showHomeScreen() {
   String wpmText = "WPM  ";
   wpmText.concat(getWpm(dotLen));
   display.println(wpmText);
-  display.setCursor(15, 30);
+  display.setCursor(15, 33);
   String toneText = "Tone ";
   toneText.concat(toneHz);
   display.println(toneText);
-  display.setCursor(15, 45);
+  display.setCursor(15, 50);
   String modeText = "Mode ";
   modeText.concat(opMode);
   display.println(modeText);
@@ -218,7 +218,6 @@ void checkRotary() {
       configureWpm();
     }
   } else if ( push == 2 ) { // long pushed
-    // TODO: Toggle between Welcome screen and settings screen
     showHomeScreen();
   }
 
