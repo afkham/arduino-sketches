@@ -48,10 +48,20 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 #define SPEED_ENC_PIN_B 12
 #define SPEED_ENC_PIN_BUTTON 11
 #define DOT_LEN_ADDR 0
-#define TONE_HZ_ADDR 1
+#define TONE_HZ_ADDR 2
 #define TONE_PIN 8      // output audio on pin 8
 #define KEY_PIN 2       // Morse key pin
 #define MODE_SELECT_PIN 4 // Pin for switching between Morse key input and serial input
+
+#define MAX_DOT_LEN 150
+#define MIN_DOT_LEN 20
+#define MAX_TONE 2200
+#define MIN_TONE 600
+
+#define OP_MODE_ENC "en" // Encoder mode of operation
+#define OP_MODE_DEC "de" // Decoder mode of operation
+
+String opMode = "";
 
 int toneHz = 1850;      // music tone/pitch in Hertz
 
@@ -68,7 +78,7 @@ typedef struct {
 const MorseMapping morseMappings[47] PROGMEM = {
   {"a", "._"}, {"b", "_..."}, {"c", "_._."}, {"d", "_.."}, {"e", "."}, {"f", ".._."}, {"g", "__."},
   {"h", "...."}, {"i", ".."}, {"j", ".___"}, {"k", "_._"}, {"l", "._.."}, {"m", "__"}, {"n", "_."},
-  {"o", "___"}, {"p", ".__."}, {"q", "__._"}, {"r", "._."}, {"s", "..."}, {"t", "_"}, {"u", "_."},
+  {"o", "___"}, {"p", ".__."}, {"q", "__._"}, {"r", "._."}, {"s", "..."}, {"t", "_"}, {"u", ".._"},
   {"v", "..._"}, {"w", ".__"}, {"x", "_.._"}, {"y", "_.__"}, {"z", "__.."},
   {"1", ".____"}, {"2", "..___"}, {"3", "...__"}, {"4", "...._"}, {"5", "....."}, {"6", "_...."},
   {"7", "__..."}, {"8", "___.."}, {"9", "____."}, {"0", "_____"},
@@ -76,6 +86,9 @@ const MorseMapping morseMappings[47] PROGMEM = {
   {"<SOS>", "...___..."}, {"<KA>", "_._._"}, {"<AS>", "._..."}, {"<AR>", "._._."}, {"<SK>", "..._._"},
 };
 
+/**
+   SETUP
+*/
 void setup() {
   pinMode(KEY_PIN, INPUT);
   pinMode(MODE_SELECT_PIN, INPUT);
@@ -92,23 +105,45 @@ void setup() {
 
 int morseKeyState; // the current reading from the Morse key
 
+/**
+   LOOP
+*/
 void loop() {
   checkRotary();
-  digitalRead(MODE_SELECT_PIN) ? morseEncode() : morseDecode();
+  if (digitalRead(MODE_SELECT_PIN)) {
+    if (opMode.length() == 0 || opMode.equals(OP_MODE_DEC)) {
+      opMode = OP_MODE_ENC;
+      showHomeScreen();
+    }
+    morseEncode();
+  } else {
+    if (opMode.length() == 0 || opMode.equals(OP_MODE_ENC)) {
+      opMode = OP_MODE_DEC;
+      showHomeScreen();
+    }
+    morseDecode();
+  }
+}
+
+void printHeader() {
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  display.setCursor(35, 2);
+  display.println("Morseduino");
 }
 
 void showProgress(String text, int val, int maxVal) {
-  display.clearDisplay();
-
+  printHeader();
   display.setTextSize(2); // Draw 2X-scale text
   display.setTextColor(WHITE);
-  display.setCursor(50, 5);
+  display.setCursor(15, 15);
   display.println(text);
-  display.setCursor(60, 25);
+  display.setCursor(15, 32);
   display.println(val);
 
   display.drawRect(15, 50, 100, 5, WHITE);
-  display.fillRect(15, 50, round(100 * val / maxVal), 5, WHITE);
+  display.fillRect(15, 50, round((float) 100 * val / maxVal), 5, WHITE);
   for (int i = 0; i < 90; i += 10) {
     display.drawPixel(25 + i, 55, WHITE);
   }
@@ -129,17 +164,35 @@ void showProgress(String text, int val, int maxVal) {
   4. The space between letters is 3 time units.
   5. The space between words is 7 time units.
 */
-int dotLen;     // length of the morse code 'dot'
+byte dotLen;     // length of the morse code 'dot'
 int dashLen;    // length of the morse code 'dash'
 int symbolSpacing; // length of the pause between elements of a character
 int charSpacing; // length of the spaces between characters
 int wordSpacing; // length of the pause between words
 
-int encoderPinALast = LOW;
+byte encoderPinALast = LOW;
+
+void showHomeScreen() {
+  printHeader();
+  display.setTextSize(2); // Draw 2X-scale text
+  display.setCursor(15, 15);
+  String wpmText = "WPM  ";
+  wpmText.concat(getWpm(dotLen));
+  display.println(wpmText);
+  display.setCursor(15, 30);
+  String toneText = "Tone ";
+  toneText.concat(toneHz);
+  display.println(toneText);
+  display.setCursor(15, 45);
+  String modeText = "Mode ";
+  modeText.concat(opMode);
+  display.println(modeText);
+  display.display();
+}
 
 void _init() {
   dotLen = EEPROM.read(DOT_LEN_ADDR);
-  toneHz = EEPROM.read(TONE_HZ_ADDR);
+  EEPROM.get(TONE_HZ_ADDR, toneHz);
   setWpmDefaults();
   configureWpm();
 
@@ -150,14 +203,13 @@ void _init() {
 #define MODE_WPM 11
 #define MODE_TONE 15
 
-int rotaryMode = MODE_WPM;
+byte rotaryMode = MODE_WPM;
 
 void checkRotary() {
   // 0 = not pushed, 1 = pushed, 2 = long pushed
   byte push = rotary.pushType(1000); // number of milliseconds button has to be pushed for it to be considered a long push.
 
   if ( push == 1 ) { // pushed
-    Serial.println("Pushed");
     if (rotaryMode == MODE_WPM) {
       rotaryMode = MODE_TONE;
       configureTone();
@@ -166,15 +218,14 @@ void checkRotary() {
       configureWpm();
     }
   } else if ( push == 2 ) { // long pushed
-    Serial.println("Long Pushed");
     // TODO: Toggle between Welcome screen and settings screen
+    showHomeScreen();
   }
 
   // 0 = not turning, 1 = CW, 2 = CCW
   byte rotated = rotary.rotate();
 
   if ( rotated == 1 ) { // CW
-    Serial.println(rotaryMode);
     if (rotaryMode == MODE_WPM) {
       dotLen -= dotLen / 20;
       setWpmDefaults();
@@ -185,7 +236,6 @@ void checkRotary() {
       configureTone();
     }
   } else if ( rotated == 2 ) { // CCW
-    Serial.println(rotaryMode);
     if (rotaryMode == MODE_WPM) {
       dotLen += dotLen / 20;
       setWpmDefaults();
@@ -198,8 +248,12 @@ void checkRotary() {
   }
 }
 
+byte getWpm(int _dotLen) {
+  return round((float) 1000 / _dotLen);
+}
+
 void setWpmDefaults() {
-  if (dotLen >= 150) dotLen = 150; else if (dotLen <= 20) dotLen = 20;
+  if (dotLen >= MAX_DOT_LEN) dotLen = MAX_DOT_LEN; else if (dotLen <= MIN_DOT_LEN) dotLen = MIN_DOT_LEN;
 }
 
 void configureWpm() {
@@ -212,27 +266,20 @@ void configureWpm() {
 }
 
 void printWpm() {
-  int wpm = round((float)1000 / dotLen);
-  String wpmText = "WPM: ";
-  wpmText.concat(wpm);
-  Serial.println(wpmText);
-  showProgress("WPM", wpm, 50);
+  showProgress("WPM", getWpm(dotLen), getWpm(MIN_DOT_LEN)); // Max WPM
 }
 
 void configureTone() {
-  EEPROM.write(TONE_HZ_ADDR, toneHz);
+  EEPROM.put(TONE_HZ_ADDR, toneHz);
   printTone();
 }
 
 void setToneDefaults() {
-  if (toneHz >= 2200) toneHz = 2200; else if (toneHz <= 1200) toneHz = 1200;
+  if (toneHz >= MAX_TONE) toneHz = MAX_TONE; else if (toneHz <= MIN_TONE) toneHz = MIN_TONE;
 }
 
 void printTone() {
-  String toneText = "Tone(Hz): ";
-  toneText.concat(toneHz);
-  Serial.println(toneText);
-  showProgress("Tone", toneHz, 1000);
+  showProgress("Tone(Hz)", toneHz, MAX_TONE);
 }
 
 // ------------ functions for oscillator mode -----------
@@ -248,9 +295,9 @@ int lastCharReceivedAt = -1;
 
 // Holds the currently active symbol (dots and dashes) buffer.
 // This will be used later for identifying the character from the dots and dashes.
-const int MAX_SYMBOLS = 10;
+const byte MAX_SYMBOLS = 10;
 char currentSymbolBuff[MAX_SYMBOLS]; // Maximum possible symbols in Morse code is 10
-int currentSymbolIndex = 0; // index to the currentSymbolBuff
+byte currentSymbolIndex = 0; // index to the currentSymbolBuff
 bool garbageReceived = false; // Indicates whether the received symbol sequence is invalid
 
 void morseDecode() {
@@ -304,7 +351,7 @@ void pause(int delayTime) {
   delay(delayTime);
 }
 
-int lengthof(char const str[]) {
+byte lengthof(char const str[]) {
   int i = 0;
   while (str[i] != '\0') {
     i++;
@@ -342,7 +389,7 @@ void printChar(char morseStr[]) {
 void morseEncode() {
   if (Serial.available() > 0) {
     String strToPlay = Serial.readString();
-    int i = 0;
+    byte i = 0;
     int len = strToPlay.length();
     while (i < len) {
       if (strToPlay[i] == '<') { // Handle joint characters
@@ -375,7 +422,7 @@ void morseEncode() {
 }
 
 void playMorse(char normalChar[]) {
-  for (int i = 0; i < ArraySize(morseMappings); i++) {
+  for (byte i = 0; i < ArraySize(morseMappings); i++) {
     MorseMapping mm;
     PROGMEM_readAnything (&morseMappings[i], mm);
     if (normalChar == mm.ch[0]) {
@@ -386,7 +433,7 @@ void playMorse(char normalChar[]) {
 }
 
 void playMorse(String normalChar) {
-  for (int i = 0; i < ArraySize(morseMappings); i++) {
+  for (byte i = 0; i < ArraySize(morseMappings); i++) {
     MorseMapping mm;
     PROGMEM_readAnything (&morseMappings[i], mm);
     String str = mm.ch;
@@ -398,7 +445,7 @@ void playMorse(String normalChar) {
 }
 
 void playMorseSequence(char morseSequence[]) {
-  for (int i = 0; i < lengthof(morseSequence); i++) {
+  for (byte i = 0; i < lengthof(morseSequence); i++) {
     if (morseSequence[i] == '.') {
       di();
     } else if (morseSequence[i] == '_') {
