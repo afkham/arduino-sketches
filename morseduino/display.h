@@ -22,12 +22,13 @@
 #include <SPI.h>
 #include <Wire.h>
 #include <Adafruit_SSD1306.h>
+#include "datastructure.h"
 
 class Display {
   public:
     Display(byte width, byte height);
     bool init();
-    void showHomeScreen(byte wpm, unsigned int toneHz, String opMode);
+    void showHomeScreen(byte wpm, unsigned int toneHz, OpMode opMode);
     void showProgress(String text, int val, int maxVal);
 	
   private:

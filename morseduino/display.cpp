@@ -19,11 +19,11 @@
 #include "display.h"
 
 Display::Display(byte width, byte height) {
-    _ssd1306Display = new Adafruit_SSD1306(width, height, &Wire, -1);
+  _ssd1306Display = new Adafruit_SSD1306(width, height, &Wire, -1);
 }
 
 bool Display::init() {
-    return _ssd1306Display->begin(SSD1306_SWITCHCAPVCC, 0x3C);
+  return _ssd1306Display->begin(SSD1306_SWITCHCAPVCC, 0x3C);
 }
 
 void Display::showProgress(String text, int val, int maxVal) {
@@ -44,7 +44,7 @@ void Display::showProgress(String text, int val, int maxVal) {
   _ssd1306Display->display();
 }
 
-void Display::showHomeScreen(byte wpm, unsigned int toneHz, String opMode) {
+void Display::showHomeScreen(byte wpm, unsigned int toneHz, OpMode opMode) {
   _printHeader();
   _ssd1306Display->setTextSize(2); // Draw 2X-scale text
   _ssd1306Display->setCursor(15, 15);
@@ -57,7 +57,11 @@ void Display::showHomeScreen(byte wpm, unsigned int toneHz, String opMode) {
   _ssd1306Display->println(toneText);
   _ssd1306Display->setCursor(15, 50);
   String modeText = "Mode ";
-  modeText.concat(opMode);
+  if (opMode == dec) {
+    modeText.concat("dec"); 
+  } else if (opMode == enc) {
+    modeText.concat("enc"); 
+  }
   _ssd1306Display->println(modeText);
   _ssd1306Display->display();
 }

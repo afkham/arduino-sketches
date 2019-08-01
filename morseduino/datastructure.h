@@ -52,4 +52,9 @@ const MorseMapping morseMappings[47] PROGMEM = {
   {"<SOS>", "...___..."}, {"<KA>", "_._._"}, {"<AS>", "._..."}, {"<AR>", "._._."}, {"<SK>", "..._._"},
 };
 
+// --------------- Modes of operation -------------------------
+enum OpMode {
+  enc, // Encoder mode of operation
+  dec // Decoder mode of operation
+};
 #endif

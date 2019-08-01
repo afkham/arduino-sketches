@@ -17,39 +17,44 @@
   under the License.
 */
 #include <EEPROM.h>
-#include <SimpleRotary.h>
+#include "rotary.h"
 #include "display.h"
-#include "decoder.h"
 #include "encoder.h"
+#include "decoder.h"
+#include "datastructure.h"
 
+// --------------- EEPROM addresses --------------------------
+#define DOT_LEN_ADDR 0   // to store the Morse dot length used for WPM calculation
+#define TONE_HZ_ADDR 2   // to store the tone frequency 
+
+// --------------- pins --------------------------------------
 #define SPEED_ENC_PIN_A 13
 #define SPEED_ENC_PIN_B 12
 #define SPEED_ENC_PIN_BUTTON 11
-#define DOT_LEN_ADDR 0
-#define TONE_HZ_ADDR 2
 #define TONE_PIN 8      // output audio on pin 8
 #define KEY_PIN 2       // Morse key pin
 #define MODE_SELECT_PIN 4 // Pin for switching between Morse key input and serial input
+
+// ---------------- limits ---------------------------------- 
 
 #define MAX_DOT_LEN 150
 #define MIN_DOT_LEN 20
 #define MAX_TONE 2200
 #define MIN_TONE 600
+// ------------------------------------------------------------
 
-#define OP_MODE_ENC "en" // Encoder mode of operation
-#define OP_MODE_DEC "de" // Decoder mode of operation
-
-String opMode = "";
-
-int toneHz = 1850;      // music tone/pitch in Hertz
-
-// Pin A, Pin B, Button Pin
 SimpleRotary rotary(SPEED_ENC_PIN_A, SPEED_ENC_PIN_B, SPEED_ENC_PIN_BUTTON);
 Display display(128, 64);
 Decoder decoder(KEY_PIN, TONE_PIN);
 Encoder encoder(TONE_PIN);
 
+
+int toneHz = 1850;      // music tone/pitch in Hertz
 byte dotLen;     // length of the morse code 'dot'
+
+OpMode currentOpMode = NULL;
+// ------------------------------------------------------------
+
 
 /**
    SETUP
@@ -60,15 +65,23 @@ void setup() {
   pinMode(SPEED_ENC_PIN_A, INPUT);
   pinMode(SPEED_ENC_PIN_B, INPUT);
   Serial.begin(9600);
-  
-  if (!display.init()) {
-     Serial.println(F("SSD1306 allocation failed"));
-     for (;;); // Don't proceed, loop forever
-  }
-  _init();
-}
 
-int morseKeyState; // the current reading from the Morse key
+  if (!display.init()) {
+    Serial.println(F("SSD1306 allocation failed"));
+    for (;;); // Don't proceed, loop forever
+  }
+  dotLen = EEPROM.read(DOT_LEN_ADDR);
+  EEPROM.get(TONE_HZ_ADDR, toneHz);
+  
+  rotary.setDebounceDelay(0);
+  rotary.setErrorDelay(0);
+  
+  setWpmDefaults();
+  configureWpm();
+
+  setToneDefaults();
+  configureTone();
+}
 
 /**
    LOOP
@@ -76,30 +89,18 @@ int morseKeyState; // the current reading from the Morse key
 void loop() {
   checkRotary();
   if (digitalRead(MODE_SELECT_PIN)) {
-    if (opMode.length() == 0 || opMode.equals(OP_MODE_DEC)) {
-      opMode = OP_MODE_ENC;
-      display.showHomeScreen(getWpm(dotLen), toneHz, opMode);
+    if (currentOpMode == NULL || currentOpMode == dec) { // If it has toggled
+      currentOpMode = enc;
+      display.showHomeScreen(getWpm(dotLen), toneHz, currentOpMode); 
     }
     encoder.encode();
   } else {
-    if (opMode.length() == 0 || opMode.equals(OP_MODE_ENC)) {
-      opMode = OP_MODE_DEC;
-      display.showHomeScreen(getWpm(dotLen), toneHz, opMode);
+    if (currentOpMode == NULL || currentOpMode == enc) { // If it has toggled
+      currentOpMode = dec;
+      display.showHomeScreen(getWpm(dotLen), toneHz, currentOpMode); 
     }
     decoder.decode();
   }
-}
-
-byte encoderPinALast = LOW;
-
-void _init() {
-  dotLen = EEPROM.read(DOT_LEN_ADDR);
-  EEPROM.get(TONE_HZ_ADDR, toneHz);
-  setWpmDefaults();
-  configureWpm();
-
-  setToneDefaults();
-  configureTone();
 }
 
 #define MODE_WPM 11
@@ -120,7 +121,7 @@ void checkRotary() {
       configureWpm();
     }
   } else if ( push == 2 ) { // long pushed
-    display.showHomeScreen(getWpm(dotLen), toneHz, opMode);
+    display.showHomeScreen(getWpm(dotLen), toneHz, currentOpMode);
   }
 
   // 0 = not turning, 1 = CW, 2 = CCW
@@ -161,10 +162,6 @@ void configureWpm() {
   EEPROM.write(DOT_LEN_ADDR, dotLen);
   decoder.setDotLength(dotLen);
   encoder.setDotLength(dotLen);
-  printWpm();
-}
-
-void printWpm() {
   display.showProgress("WPM", getWpm(dotLen), getWpm(MIN_DOT_LEN)); // Max WPM
 }
 
@@ -172,13 +169,9 @@ void configureTone() {
   EEPROM.put(TONE_HZ_ADDR, toneHz);
   decoder.setTone(toneHz);
   encoder.setTone(toneHz);
-  printTone();
+  display.showProgress("Tone(Hz)", toneHz, MAX_TONE);
 }
 
 void setToneDefaults() {
   if (toneHz >= MAX_TONE) toneHz = MAX_TONE; else if (toneHz <= MIN_TONE) toneHz = MIN_TONE;
-}
-
-void printTone() {
-  display.showProgress("Tone(Hz)", toneHz, MAX_TONE);
 }
