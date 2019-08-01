@@ -35,7 +35,7 @@
 #define KEY_PIN 2       // Morse key pin
 #define MODE_SELECT_PIN 4 // Pin for switching between Morse key input and serial input
 
-// ---------------- limits ---------------------------------- 
+// ---------------- limits ----------------------------------
 
 #define MAX_DOT_LEN 150
 #define MIN_DOT_LEN 20
@@ -53,6 +53,8 @@ int toneHz = 1850;      // music tone/pitch in Hertz
 byte dotLen;     // length of the morse code 'dot'
 
 OpMode currentOpMode = NULL;
+
+bool showHome = true;
 // ------------------------------------------------------------
 
 
@@ -72,10 +74,10 @@ void setup() {
   }
   dotLen = EEPROM.read(DOT_LEN_ADDR);
   EEPROM.get(TONE_HZ_ADDR, toneHz);
-  
+
   rotary.setDebounceDelay(0);
   rotary.setErrorDelay(0);
-  
+
   setWpmDefaults();
   configureWpm();
 
@@ -91,13 +93,13 @@ void loop() {
   if (digitalRead(MODE_SELECT_PIN)) {
     if (currentOpMode == NULL || currentOpMode == dec) { // If it has toggled
       currentOpMode = enc;
-      display.showHomeScreen(getWpm(dotLen), toneHz, currentOpMode); 
+      display.showHomeScreen(getWpm(dotLen), toneHz, currentOpMode);
     }
     encoder.encode();
   } else {
     if (currentOpMode == NULL || currentOpMode == enc) { // If it has toggled
       currentOpMode = dec;
-      display.showHomeScreen(getWpm(dotLen), toneHz, currentOpMode); 
+      display.showHomeScreen(getWpm(dotLen), toneHz, currentOpMode);
     }
     decoder.decode();
   }
@@ -112,7 +114,7 @@ void checkRotary() {
   // 0 = not pushed, 1 = pushed, 2 = long pushed
   byte push = rotary.pushType(1000); // number of milliseconds button has to be pushed for it to be considered a long push.
 
-  if ( push == 1 ) { // pushed
+  if ( push == 1  && !showHome) { // pushed while home screen is not shown
     if (rotaryMode == MODE_WPM) {
       rotaryMode = MODE_TONE;
       configureTone();
@@ -121,31 +123,40 @@ void checkRotary() {
       configureWpm();
     }
   } else if ( push == 2 ) { // long pushed
-    display.showHomeScreen(getWpm(dotLen), toneHz, currentOpMode);
+    if (!showHome) {
+      display.showHomeScreen(getWpm(dotLen), toneHz, currentOpMode);
+      showHome = true;
+    } else {
+      showHome = false;
+      rotaryMode = MODE_WPM;
+      configureWpm();
+    }
   }
 
   // 0 = not turning, 1 = CW, 2 = CCW
   byte rotated = rotary.rotate();
 
-  if ( rotated == 1 ) { // CW
-    if (rotaryMode == MODE_WPM) {
-      dotLen -= dotLen / 20;
-      setWpmDefaults();
-      configureWpm();
-    } else if (rotaryMode == MODE_TONE) {
-      toneHz += 50;
-      setToneDefaults();
-      configureTone();
-    }
-  } else if ( rotated == 2 ) { // CCW
-    if (rotaryMode == MODE_WPM) {
-      dotLen += dotLen / 20;
-      setWpmDefaults();
-      configureWpm();
-    } else if (rotaryMode == MODE_TONE) {
-      toneHz -= 50;
-      setToneDefaults();
-      configureTone();
+  if (!showHome) {
+    if (rotated == 1 ) { // CW
+      if (rotaryMode == MODE_WPM) {
+        dotLen -= dotLen / 20;
+        setWpmDefaults();
+        configureWpm();
+      } else if (rotaryMode == MODE_TONE) {
+        toneHz += 50;
+        setToneDefaults();
+        configureTone();
+      }
+    } else if ( rotated == 2 ) { // CCW
+      if (rotaryMode == MODE_WPM) {
+        dotLen += dotLen / 20;
+        setWpmDefaults();
+        configureWpm();
+      } else if (rotaryMode == MODE_TONE) {
+        toneHz -= 50;
+        setToneDefaults();
+        configureTone();
+      }
     }
   }
 }
