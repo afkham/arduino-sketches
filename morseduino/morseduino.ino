@@ -17,10 +17,8 @@
   under the License.
 */
 #include <EEPROM.h>
-#include <SPI.h>
-#include <Wire.h>
-#include <Adafruit_SSD1306.h>
 #include <SimpleRotary.h>
+#include "display.h"
 
 /*
     The following template is used for reading from PROGMEM
@@ -36,13 +34,6 @@ template <typename T> void PROGMEM_readAnything (const T * sce, T& dest) {
 template< typename T, size_t N > size_t ArraySize (T (&) [N]) {
   return N;
 }
-
-#define SCREEN_WIDTH 128 // OLED display width, in pixels
-#define SCREEN_HEIGHT 64 // OLED display height, in pixels
-
-// Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
-#define OLED_RESET     -1 // Reset pin # (or -1 if sharing Arduino reset pin)
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 #define SPEED_ENC_PIN_A 13
 #define SPEED_ENC_PIN_B 12
@@ -67,6 +58,7 @@ int toneHz = 1850;      // music tone/pitch in Hertz
 
 // Pin A, Pin B, Button Pin
 SimpleRotary rotary(SPEED_ENC_PIN_A, SPEED_ENC_PIN_B, SPEED_ENC_PIN_BUTTON);
+Display display(128, 64);
 
 // Character to Morse code mapping
 typedef struct {
@@ -85,71 +77,6 @@ const MorseMapping morseMappings[47] PROGMEM = {
   {".", "._._._"}, {",", "__..__"}, {"?", "..__.."}, {"=", "_..._"}, {"+", "._._."}, {"-", "_...._"},
   {"<SOS>", "...___..."}, {"<KA>", "_._._"}, {"<AS>", "._..."}, {"<AR>", "._._."}, {"<SK>", "..._._"},
 };
-
-/**
-   SETUP
-*/
-void setup() {
-  pinMode(KEY_PIN, INPUT);
-  pinMode(MODE_SELECT_PIN, INPUT);
-  pinMode(SPEED_ENC_PIN_A, INPUT);
-  pinMode(SPEED_ENC_PIN_B, INPUT);
-  Serial.begin(9600);
-  // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
-  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
-    Serial.println(F("SSD1306 allocation failed"));
-    for (;;); // Don't proceed, loop forever
-  }
-  _init();
-}
-
-int morseKeyState; // the current reading from the Morse key
-
-/**
-   LOOP
-*/
-void loop() {
-  checkRotary();
-  if (digitalRead(MODE_SELECT_PIN)) {
-    if (opMode.length() == 0 || opMode.equals(OP_MODE_DEC)) {
-      opMode = OP_MODE_ENC;
-      showHomeScreen();
-    }
-    morseEncode();
-  } else {
-    if (opMode.length() == 0 || opMode.equals(OP_MODE_ENC)) {
-      opMode = OP_MODE_DEC;
-      showHomeScreen();
-    }
-    morseDecode();
-  }
-}
-
-void printHeader() {
-  display.clearDisplay();
-  display.setTextSize(1);
-  display.setTextColor(WHITE);
-  display.setCursor(35, 2);
-  display.println("Morseduino");
-}
-
-void showProgress(String text, int val, int maxVal) {
-  printHeader();
-  display.setTextSize(2); // Draw 2X-scale text
-  display.setTextColor(WHITE);
-  display.setCursor(15, 15);
-  display.println(text);
-  display.setCursor(15, 32);
-  display.println(val);
-
-  display.drawRect(15, 55, 100, 5, WHITE);
-  display.fillRect(15, 55, round((float) 100 * val / maxVal), 5, WHITE);
-  for (byte i = 0; i < 90; i += 10) {
-    display.drawPixel(25 + i, 60, WHITE);
-  }
-
-  display.display();
-}
 
 /*
   Set the speed of your morse code
@@ -170,25 +97,46 @@ int symbolSpacing; // length of the pause between elements of a character
 int charSpacing; // length of the spaces between characters
 int wordSpacing; // length of the pause between words
 
-byte encoderPinALast = LOW;
-
-void showHomeScreen() {
-  printHeader();
-  display.setTextSize(2); // Draw 2X-scale text
-  display.setCursor(15, 15);
-  String wpmText = "WPM  ";
-  wpmText.concat(getWpm(dotLen));
-  display.println(wpmText);
-  display.setCursor(15, 33);
-  String toneText = "Tone ";
-  toneText.concat(toneHz);
-  display.println(toneText);
-  display.setCursor(15, 50);
-  String modeText = "Mode ";
-  modeText.concat(opMode);
-  display.println(modeText);
-  display.display();
+/**
+   SETUP
+*/
+void setup() {
+  pinMode(KEY_PIN, INPUT);
+  pinMode(MODE_SELECT_PIN, INPUT);
+  pinMode(SPEED_ENC_PIN_A, INPUT);
+  pinMode(SPEED_ENC_PIN_B, INPUT);
+  Serial.begin(9600);
+  
+  if (!display.init()) {
+     Serial.println(F("SSD1306 allocation failed"));
+     for (;;); // Don't proceed, loop forever
+  }
+  _init();
 }
+
+int morseKeyState; // the current reading from the Morse key
+
+/**
+   LOOP
+*/
+void loop() {
+  checkRotary();
+  if (digitalRead(MODE_SELECT_PIN)) {
+    if (opMode.length() == 0 || opMode.equals(OP_MODE_DEC)) {
+      opMode = OP_MODE_ENC;
+      display.showHomeScreen(getWpm(dotLen), toneHz, opMode);
+    }
+    morseEncode();
+  } else {
+    if (opMode.length() == 0 || opMode.equals(OP_MODE_ENC)) {
+      opMode = OP_MODE_DEC;
+      display.showHomeScreen(getWpm(dotLen), toneHz, opMode);
+    }
+    morseDecode();
+  }
+}
+
+byte encoderPinALast = LOW;
 
 void _init() {
   dotLen = EEPROM.read(DOT_LEN_ADDR);
@@ -218,7 +166,7 @@ void checkRotary() {
       configureWpm();
     }
   } else if ( push == 2 ) { // long pushed
-    showHomeScreen();
+    display.showHomeScreen(getWpm(dotLen), toneHz, opMode);
   }
 
   // 0 = not turning, 1 = CW, 2 = CCW
@@ -265,7 +213,7 @@ void configureWpm() {
 }
 
 void printWpm() {
-  showProgress("WPM", getWpm(dotLen), getWpm(MIN_DOT_LEN)); // Max WPM
+  display.showProgress("WPM", getWpm(dotLen), getWpm(MIN_DOT_LEN)); // Max WPM
 }
 
 void configureTone() {
@@ -278,7 +226,7 @@ void setToneDefaults() {
 }
 
 void printTone() {
-  showProgress("Tone(Hz)", toneHz, MAX_TONE);
+  display.showProgress("Tone(Hz)", toneHz, MAX_TONE);
 }
 
 // ------------ functions for oscillator mode -----------
