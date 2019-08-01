@@ -18,7 +18,6 @@
 #ifndef Morseduino_h
 #define Morseduino_h
 
-
 class Morseduino {
   public:
     Morseduino(byte width, byte height);

@@ -19,21 +19,8 @@
 #include <EEPROM.h>
 #include <SimpleRotary.h>
 #include "display.h"
-
-/*
-    The following template is used for reading from PROGMEM
-    See: https://arduino.stackexchange.com/questions/13545/using-progmem-to-store-array-of-structs
-*/
-template <typename T> void PROGMEM_readAnything (const T * sce, T& dest) {
-  memcpy_P (&dest, sce, sizeof (T));
-}
-
-/*
-   Number of items in an array
-*/
-template< typename T, size_t N > size_t ArraySize (T (&) [N]) {
-  return N;
-}
+#include "decoder.h"
+#include "encoder.h"
 
 #define SPEED_ENC_PIN_A 13
 #define SPEED_ENC_PIN_B 12
@@ -59,43 +46,10 @@ int toneHz = 1850;      // music tone/pitch in Hertz
 // Pin A, Pin B, Button Pin
 SimpleRotary rotary(SPEED_ENC_PIN_A, SPEED_ENC_PIN_B, SPEED_ENC_PIN_BUTTON);
 Display display(128, 64);
+Decoder decoder(KEY_PIN, TONE_PIN);
+Encoder encoder(TONE_PIN);
 
-// Character to Morse code mapping
-typedef struct {
-  char ch[6];
-  char morseSeq[10];
-} MorseMapping;
-
-// Morse Alphabet
-const MorseMapping morseMappings[47] PROGMEM = {
-  {"a", "._"}, {"b", "_..."}, {"c", "_._."}, {"d", "_.."}, {"e", "."}, {"f", ".._."}, {"g", "__."},
-  {"h", "...."}, {"i", ".."}, {"j", ".___"}, {"k", "_._"}, {"l", "._.."}, {"m", "__"}, {"n", "_."},
-  {"o", "___"}, {"p", ".__."}, {"q", "__._"}, {"r", "._."}, {"s", "..."}, {"t", "_"}, {"u", ".._"},
-  {"v", "..._"}, {"w", ".__"}, {"x", "_.._"}, {"y", "_.__"}, {"z", "__.."},
-  {"1", ".____"}, {"2", "..___"}, {"3", "...__"}, {"4", "...._"}, {"5", "....."}, {"6", "_...."},
-  {"7", "__..."}, {"8", "___.."}, {"9", "____."}, {"0", "_____"},
-  {".", "._._._"}, {",", "__..__"}, {"?", "..__.."}, {"=", "_..._"}, {"+", "._._."}, {"-", "_...._"},
-  {"<SOS>", "...___..."}, {"<KA>", "_._._"}, {"<AS>", "._..."}, {"<AR>", "._._."}, {"<SK>", "..._._"},
-};
-
-/*
-  Set the speed of your morse code
-  Adjust the dotLen length to speed up or slow down your morse code
-    (all of the other lengths are based on the dotLen)
-
-  There are rules to help people distinguish dots from dashes in Morse code.
-
-  1. The length of a dot is 1 time unit.
-  2. A dash is 3 time units.
-  3. The space between symbols (dots and dashes) of the same letter is 1 time unit.
-  4. The space between letters is 3 time units.
-  5. The space between words is 7 time units.
-*/
 byte dotLen;     // length of the morse code 'dot'
-int dashLen;    // length of the morse code 'dash'
-int symbolSpacing; // length of the pause between elements of a character
-int charSpacing; // length of the spaces between characters
-int wordSpacing; // length of the pause between words
 
 /**
    SETUP
@@ -126,13 +80,13 @@ void loop() {
       opMode = OP_MODE_ENC;
       display.showHomeScreen(getWpm(dotLen), toneHz, opMode);
     }
-    morseEncode();
+    encoder.encode();
   } else {
     if (opMode.length() == 0 || opMode.equals(OP_MODE_ENC)) {
       opMode = OP_MODE_DEC;
       display.showHomeScreen(getWpm(dotLen), toneHz, opMode);
     }
-    morseDecode();
+    decoder.decode();
   }
 }
 
@@ -204,11 +158,9 @@ void setWpmDefaults() {
 }
 
 void configureWpm() {
-  dashLen = dotLen * 3;
-  symbolSpacing = dotLen;
-  charSpacing = dotLen * 3;
-  wordSpacing = dotLen * 7;
   EEPROM.write(DOT_LEN_ADDR, dotLen);
+  decoder.setDotLength(dotLen);
+  encoder.setDotLength(dotLen);
   printWpm();
 }
 
@@ -218,6 +170,8 @@ void printWpm() {
 
 void configureTone() {
   EEPROM.put(TONE_HZ_ADDR, toneHz);
+  decoder.setTone(toneHz);
+  encoder.setTone(toneHz);
   printTone();
 }
 
@@ -227,188 +181,4 @@ void setToneDefaults() {
 
 void printTone() {
   display.showProgress("Tone(Hz)", toneHz, MAX_TONE);
-}
-
-// ------------ functions for oscillator mode -----------
-
-// The time at which a dot or dash started. This is used for identifying dots and dashes
-int symbolStartedAt = -1;
-
-// The time at which the last dot or dash was received. This is used to identify character boundaries.
-int lastSymbolReceivedAt = -1;
-
-// The time at which the last character was received. This is used for identifying word boundaries.
-int lastCharReceivedAt = -1;
-
-// Holds the currently active symbol (dots and dashes) buffer.
-// This will be used later for identifying the character from the dots and dashes.
-const byte MAX_SYMBOLS = 10;
-char currentSymbolBuff[MAX_SYMBOLS]; // Maximum possible symbols in Morse code is 10
-byte currentSymbolIndex = 0; // index to the currentSymbolBuff
-bool garbageReceived = false; // Indicates whether the received symbol sequence is invalid
-
-void morseDecode() {
-  morseKeyState = digitalRead(KEY_PIN);
-  if (morseKeyState == HIGH) {
-    int now = millis();
-    if (symbolStartedAt == -1) {
-      symbolStartedAt = now;
-    }
-    tone(TONE_PIN, toneHz);
-  } else {
-    noTone(TONE_PIN);
-    if (symbolStartedAt != -1) {
-      if (currentSymbolIndex > MAX_SYMBOLS) {
-        garbageReceived = true;
-      } else if (!garbageReceived) {
-        int now = millis();
-        if (now - symbolStartedAt >= dashLen) {
-          currentSymbolBuff[currentSymbolIndex++] = '_';
-        } else {
-          currentSymbolBuff[currentSymbolIndex++] = '.';
-        }
-        symbolStartedAt = -1;
-        lastSymbolReceivedAt = millis();
-        lastCharReceivedAt = -1;
-      }
-    }
-    int now = millis();
-    if (lastCharReceivedAt != -1 && now - lastCharReceivedAt > wordSpacing) { // Have we completed a word?
-      Serial.print(F(" "));
-      lastCharReceivedAt = -1;
-    } else if (lastSymbolReceivedAt != -1 && now - lastSymbolReceivedAt > charSpacing) { // Have we completed a character?
-      printChar(currentSymbolBuff);
-      garbageReceived = false;
-      resetCurrentSymbolBuff();
-      lastSymbolReceivedAt = -1;
-      lastCharReceivedAt = millis();
-    }
-  }
-}
-
-void resetCurrentSymbolBuff() {
-  for (int i = 0; i < MAX_SYMBOLS; i++) {
-    currentSymbolBuff[i] = '\0';
-  }
-  currentSymbolIndex = 0;
-}
-
-void pause(int delayTime) {
-  noTone(TONE_PIN);
-  delay(delayTime);
-}
-
-byte lengthof(char const str[]) {
-  int i = 0;
-  while (str[i] != '\0') {
-    i++;
-  }
-  return i;
-}
-
-bool isEqual(char ch1[], char const ch2[]) {
-  if (lengthof(ch1) != lengthof(ch2)) return false;
-  int i = 0;
-  while (ch1[i] != '\0' && ch2[i] != '\0') {
-    if (ch1[i] != ch2[i]) return false;
-    i++;
-  }
-  return true;
-}
-
-void printChar(char morseStr[]) {
-  for (int i = 0; i < ArraySize(morseMappings); i++) {
-    MorseMapping mm;
-    PROGMEM_readAnything (&morseMappings[i], mm);
-    if (isEqual(morseStr, mm.morseSeq)) {
-      Serial.print(mm.ch);
-      if (isEqual(mm.ch, "=")) {
-        Serial.println();
-      }
-      return;
-    }
-  }
-  Serial.print('#');
-}
-
-// ------------ functions for playing Morse mode -----------
-
-void morseEncode() {
-  if (Serial.available() > 0) {
-    String strToPlay = Serial.readString();
-    byte i = 0;
-    int len = strToPlay.length();
-    while (i < len) {
-      if (strToPlay[i] == '<') { // Handle joint characters
-        String tmp = strToPlay.substring(i);
-        int j = tmp.substring(1).indexOf('>');
-        if (j == -1) {
-          Serial.println(F("####### INVALID INPUT #######"));
-          return;
-        }
-        tmp = tmp.substring(0, j + 2);
-        playMorse(tmp);
-        Serial.print(tmp);
-        i = i + j + 2;
-      } else {
-        if (strToPlay[i] == ' ') {
-          delay(wordSpacing);
-        } else {
-          playMorse(toLowerCase(strToPlay[i]));
-          delay(charSpacing);
-        }
-        Serial.print(strToPlay[i]);
-        if (strToPlay[i] == '=') {
-          Serial.println();
-        }
-        i++;
-      }
-    }
-    Serial.println();
-  }
-}
-
-void playMorse(char normalChar[]) {
-  for (byte i = 0; i < ArraySize(morseMappings); i++) {
-    MorseMapping mm;
-    PROGMEM_readAnything (&morseMappings[i], mm);
-    if (normalChar == mm.ch[0]) {
-      playMorseSequence(mm.morseSeq);
-      return;
-    }
-  }
-}
-
-void playMorse(String normalChar) {
-  for (byte i = 0; i < ArraySize(morseMappings); i++) {
-    MorseMapping mm;
-    PROGMEM_readAnything (&morseMappings[i], mm);
-    String str = mm.ch;
-    if (normalChar == str) {
-      playMorseSequence(mm.morseSeq);
-      return;
-    }
-  }
-}
-
-void playMorseSequence(char morseSequence[]) {
-  for (byte i = 0; i < lengthof(morseSequence); i++) {
-    if (morseSequence[i] == '.') {
-      di();
-    } else if (morseSequence[i] == '_') {
-      dah();
-    }
-  }
-}
-
-void di() {
-  tone(TONE_PIN, toneHz, dotLen);
-  delay(dotLen);
-  pause(symbolSpacing);
-}
-
-void dah() {
-  tone(TONE_PIN, toneHz, dashLen);  // start playing a tone
-  delay(dashLen);               // hold in this position
-  pause(symbolSpacing);
 }
