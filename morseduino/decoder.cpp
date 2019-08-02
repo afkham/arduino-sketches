@@ -23,6 +23,8 @@
 
 Decoder::Decoder(Display* display, byte keyPin, byte tonePin): _display(display), _keyPin(keyPin), _tonePin(tonePin) {}
 
+Decoder::~Decoder() {delete _display;}
+
 void Decoder::setDotLength(byte dotLen) {
   WPM_RULES
 }

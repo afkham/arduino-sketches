@@ -27,6 +27,8 @@
 class Display {
   public:
     Display(byte width, byte height);
+    ~Display();
+    
     bool init();
     void showHomeScreen(byte wpm, unsigned int toneHz, OpMode opMode);
     void showProgress(String text, int val, int maxVal);

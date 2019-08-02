@@ -27,6 +27,7 @@ class Decoder {
     void setDotLength(byte dotLen);
     void setTone(int toneHz);
     void decode();
+    ~Decoder();
 
   private:
     Display* _display;

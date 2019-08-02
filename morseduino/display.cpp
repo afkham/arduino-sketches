@@ -22,6 +22,8 @@ Display::Display(byte width, byte height) {
   _ssd1306Display = new Adafruit_SSD1306(width, height, &Wire, -1);
 }
 
+Display::~Display() {delete _ssd1306Display;}
+
 bool Display::init() {
   return _ssd1306Display->begin(SSD1306_SWITCHCAPVCC, 0x3C);
 }
