@@ -23,8 +23,6 @@
 #include "decoder.h"
 #include "datastructure.h"
 
-// #define ENABLE_SERIAL 1
-
 // --------------- EEPROM addresses --------------------------
 #define DOT_LEN_ADDR 0   // to store the Morse dot length used for WPM calculation
 #define TONE_HZ_ADDR 2   // to store the tone frequency 
@@ -54,7 +52,7 @@ Encoder encoder(TONE_PIN);
 int toneHz = 1850;      // music tone/pitch in Hertz
 byte dotLen;     // length of the morse code 'dot'
 
-OpMode currentOpMode = NULL;
+OpMode currentOpMode = invalid;
 
 bool showHome = true;
 // ------------------------------------------------------------
@@ -95,20 +93,22 @@ void setup() {
    LOOP
 */
 void loop() {
-  checkRotary();
   if (digitalRead(MODE_SELECT_PIN)) {
-    if (currentOpMode == NULL || currentOpMode == dec) { // If it has toggled
+    if (currentOpMode == invalid || currentOpMode == dec) { // If it has toggled
       currentOpMode = enc;
       display.showHomeScreen(getWpm(dotLen), toneHz, currentOpMode);
+      showHome = true;
     }
     encoder.encode();
   } else {
-    if (currentOpMode == NULL || currentOpMode == enc) { // If it has toggled
+    if (currentOpMode == invalid || currentOpMode == enc) { // If it has toggled
       currentOpMode = dec;
       display.showHomeScreen(getWpm(dotLen), toneHz, currentOpMode);
+      showHome = true;
     }
     decoder.decode();
   }
+  checkRotary();
 }
 
 #define MODE_WPM 11

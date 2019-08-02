@@ -19,6 +19,8 @@
 #ifndef MorseduinoDataStructure_h
 #define MorseduinoDataStructure_h
 
+#define ENABLE_SERIAL 1
+
 /*
     There are rules to help people distinguish dots from dashes in Morse code.
 
@@ -70,7 +72,8 @@ const MorseMapping morseMappings[47] PROGMEM = {
 
 // --------------- Modes of operation -------------------------
 enum OpMode {
-  enc, // Encoder mode of operation
-  dec // Decoder mode of operation
+  invalid,
+  dec, // Decoder mode of operation
+  enc // Encoder mode of operation
 };
 #endif
