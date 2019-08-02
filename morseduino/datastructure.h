@@ -20,6 +20,22 @@
 #define MorseduinoDataStructure_h
 
 /*
+    There are rules to help people distinguish dots from dashes in Morse code.
+
+    1. The length of a dot is 1 time unit.
+    2. A dash is 3 time units.
+    3. The space between symbols (dots and dashes) of the same letter is 1 time unit.
+    4. The space between letters is 3 time units.
+    5. The space between words is 7 time units.
+*/
+#define WPM_RULES \
+    _dotLen = dotLen; \
+    _dashLen = dotLen * 3; \
+    _symbolSpacing = dotLen; \
+    _charSpacing = dotLen * 3; \
+    _wordSpacing = dotLen * 7; \
+
+/*
     The following template is used for reading from PROGMEM
     See: https://arduino.stackexchange.com/questions/13545/using-progmem-to-store-array-of-structs
 */

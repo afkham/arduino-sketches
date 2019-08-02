@@ -23,6 +23,8 @@
 #include "decoder.h"
 #include "datastructure.h"
 
+// #define ENABLE_SERIAL 1
+
 // --------------- EEPROM addresses --------------------------
 #define DOT_LEN_ADDR 0   // to store the Morse dot length used for WPM calculation
 #define TONE_HZ_ADDR 2   // to store the tone frequency 
@@ -45,7 +47,7 @@
 
 SimpleRotary rotary(SPEED_ENC_PIN_A, SPEED_ENC_PIN_B, SPEED_ENC_PIN_BUTTON);
 Display display(128, 64);
-Decoder decoder(KEY_PIN, TONE_PIN);
+Decoder decoder(&display, KEY_PIN, TONE_PIN);
 Encoder encoder(TONE_PIN);
 
 
@@ -66,10 +68,14 @@ void setup() {
   pinMode(MODE_SELECT_PIN, INPUT);
   pinMode(SPEED_ENC_PIN_A, INPUT);
   pinMode(SPEED_ENC_PIN_B, INPUT);
+  #ifdef ENABLE_SERIAL
   Serial.begin(9600);
+  #endif
 
   if (!display.init()) {
+    #ifdef ENABLE_SERIAL
     Serial.println(F("SSD1306 allocation failed"));
+    #endif
     for (;;); // Don't proceed, loop forever
   }
   dotLen = EEPROM.read(DOT_LEN_ADDR);
@@ -113,7 +119,6 @@ byte rotaryMode = MODE_WPM;
 void checkRotary() {
   // 0 = not pushed, 1 = pushed, 2 = long pushed
   byte push = rotary.pushType(1000); // number of milliseconds button has to be pushed for it to be considered a long push.
-
   if ( push == 1  && !showHome) { // pushed while home screen is not shown
     if (rotaryMode == MODE_WPM) {
       rotaryMode = MODE_TONE;
@@ -135,7 +140,6 @@ void checkRotary() {
 
   // 0 = not turning, 1 = CW, 2 = CCW
   byte rotated = rotary.rotate();
-
   if (!showHome) {
     if (rotated == 1 ) { // CW
       if (rotaryMode == MODE_WPM) {

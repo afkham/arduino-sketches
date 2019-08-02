@@ -19,15 +19,17 @@
 #define MorseduinoDecoder_h
 
 #include <Arduino.h>
+#include "display.h"
 
 class Decoder {
   public:
-    Decoder(byte keyPin, byte tonePin);
+    Decoder(Display* display, byte keyPin, byte tonePin);
     void setDotLength(byte dotLen);
     void setTone(int toneHz);
     void decode();
 
   private:
+    Display* _display;
     byte _keyPin;  // Morse key pin
     byte _tonePin; // Pin where tone is played
     int _toneHz; // Tone to play

@@ -24,20 +24,7 @@
 Encoder::Encoder(byte tonePin): _tonePin(tonePin) {}
 
 void Encoder::setDotLength(byte dotLen) {
-    /*
-        There are rules to help people distinguish dots from dashes in Morse code.
-
-        1. The length of a dot is 1 time unit.
-        2. A dash is 3 time units.
-        3. The space between symbols (dots and dashes) of the same letter is 1 time unit.
-        4. The space between letters is 3 time units.
-        5. The space between words is 7 time units.
-    */
-    _dotLen = dotLen;
-    _dashLen = dotLen * 3;
-    _symbolSpacing = dotLen;
-    _charSpacing = dotLen * 3;
-    _wordSpacing = dotLen * 7;
+  WPM_RULES
 }
 
 void Encoder::setTone(int toneHz) {
@@ -45,6 +32,7 @@ void Encoder::setTone(int toneHz) {
 }
 
 void Encoder::encode() {
+  #ifdef ENABLE_SERIAL
   if (Serial.available() > 0) {
     String strToPlay = Serial.readString();
     byte i = 0;
@@ -77,6 +65,7 @@ void Encoder::encode() {
     }
     Serial.println();
   }
+  #endif
 }
 
 void Encoder::_playMorse(char normalChar[]) {
@@ -102,11 +91,11 @@ void Encoder::_playMorse(String normalChar) {
   }
 }
 
-void Encoder::_playMorseSequence(char morseSequence[]) {
-  for (byte i = 0; i < _lengthof(morseSequence); i++) {
-    if (morseSequence[i] == '.') {
+void Encoder::_playMorseSequence(char morseSeq[]) {
+  for (byte i = 0; i < _lengthof(morseSeq); i++) {
+    if (morseSeq[i] == '.') {
       _di();
-    } else if (morseSequence[i] == '_') {
+    } else if (morseSeq[i] == '_') {
       _dah();
     }
   }

@@ -21,14 +21,10 @@
 
 #include <Arduino.h>
 
-Decoder::Decoder(byte keyPin, byte tonePin): _keyPin(keyPin), _tonePin(tonePin) {}
+Decoder::Decoder(Display* display, byte keyPin, byte tonePin): _display(display), _keyPin(keyPin), _tonePin(tonePin) {}
 
 void Decoder::setDotLength(byte dotLen) {
-  _dotLen = dotLen;
-  _dashLen = dotLen * 3;
-  _symbolSpacing = dotLen;
-  _charSpacing = dotLen * 3;
-  _wordSpacing = dotLen * 7;
+  WPM_RULES
 }
 
 void Decoder::setTone(int toneHz) {
@@ -62,7 +58,10 @@ void Decoder::decode() {
     }
     int now = millis();
     if (_lastCharReceivedAt != -1 && now - _lastCharReceivedAt > _wordSpacing) { // Have we completed a word?
+      #ifdef ENABLE_SERIAL
       Serial.print(F(" "));
+      #endif
+      _display->showText(" ");
       _lastCharReceivedAt = -1;
     } else if (_lastSymbolReceivedAt != -1 && now - _lastSymbolReceivedAt > _charSpacing) { // Have we completed a character?
       _printChar(_currentSymbolBuff);
@@ -110,12 +109,20 @@ void Decoder::_printChar(char morseStr[]) {
     MorseMapping mm;
     PROGMEM_readAnything (&morseMappings[i], mm);
     if (_isEqual(morseStr, mm.morseSeq)) {
+      #ifdef ENABLE_SERIAL
       Serial.print(mm.ch);
+      #endif
+      _display->showText(mm.ch);
+      #ifdef ENABLE_SERIAL
       if (_isEqual(mm.ch, "=")) {
         Serial.println();
       }
+      #endif
       return;
     }
   }
+  #ifdef ENABLE_SERIAL
   Serial.print('#');
+  #endif
+  _display->showText("#");
 }

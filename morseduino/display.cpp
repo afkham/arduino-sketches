@@ -26,6 +26,16 @@ bool Display::init() {
   return _ssd1306Display->begin(SSD1306_SWITCHCAPVCC, 0x3C);
 }
 
+void Display::showText(String text) {
+  _printHeader();
+  _ssd1306Display->setTextColor(WHITE);
+  _ssd1306Display->setCursor(0, 15);
+  if(_displayText.length() > 120) _displayText = ""; 
+  _displayText.concat(text);
+  _ssd1306Display->println(_displayText);
+  _ssd1306Display->display();
+}
+
 void Display::showProgress(String text, int val, int maxVal) {
   _printHeader();
   _ssd1306Display->setTextSize(2); // Draw 2X-scale text
@@ -58,9 +68,9 @@ void Display::showHomeScreen(byte wpm, unsigned int toneHz, OpMode opMode) {
   _ssd1306Display->setCursor(15, 50);
   String modeText = "Mode ";
   if (opMode == dec) {
-    modeText.concat("dec"); 
+    modeText.concat("dec");
   } else if (opMode == enc) {
-    modeText.concat("enc"); 
+    modeText.concat("enc");
   }
   _ssd1306Display->println(modeText);
   _ssd1306Display->display();
