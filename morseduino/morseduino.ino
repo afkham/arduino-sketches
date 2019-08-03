@@ -1,4 +1,3 @@
-
 /*
    Copyright (c) 2019, Afkham Azeez (http://me.afkham.org) All Rights Reserved.
 
@@ -17,6 +16,7 @@
   under the License.
 */
 #include <EEPROM.h>
+#include <avr/wdt.h>
 #include "rotary.h"
 #include "display.h"
 #include "encoder.h"
@@ -87,12 +87,14 @@ void setup() {
 
   setToneDefaults();
   configureTone();
+  wdt_enable(WDTO_500MS); // Set watchdog timer to 500ms
 }
 
 /**
    LOOP
 */
 void loop() {
+  wdt_reset(); // kick the watchdog
   if (digitalRead(MODE_SELECT_PIN)) {
     if (currentOpMode == invalid || currentOpMode == dec) { // If it has toggled
       currentOpMode = enc;

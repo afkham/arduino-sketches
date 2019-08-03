@@ -53,10 +53,10 @@ template< typename T, size_t N > size_t ArraySize (T (&) [N]) {
 }
 
 // Character to Morse code mapping
-typedef struct {
+struct MorseMapping {
   char ch[6];
   char morseSeq[10];
-} MorseMapping;
+};
 
 // Morse Alphabet
 const MorseMapping morseMappings[47] PROGMEM = {
