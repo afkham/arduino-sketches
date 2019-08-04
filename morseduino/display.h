@@ -30,13 +30,14 @@ class Display {
     ~Display();
     
     bool init();
-    void showHomeScreen(byte wpm, unsigned int toneHz, OpMode opMode);
-    void showProgress(String text, int val, int maxVal);
-	  void showText(String text);
+    void showHomeScreen(const byte wpm, const unsigned int toneHz, const OpMode opMode);
+    void showProgress(const char* text, const int val, const int maxVal);
+    void showText(const String text);
   private:
     Adafruit_SSD1306* _ssd1306Display;
     void _printHeader();
     String _displayText;
+    const char _header[11] = "Morseduino";
 };
 
 #endif

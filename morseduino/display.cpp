@@ -28,7 +28,7 @@ bool Display::init() {
   return _ssd1306Display->begin(SSD1306_SWITCHCAPVCC, 0x3C);
 }
 
-void Display::showText(String text) {
+void Display::showText(const String text) {
   _printHeader();
   _ssd1306Display->setTextColor(WHITE);
   _ssd1306Display->setCursor(0, 15);
@@ -38,7 +38,7 @@ void Display::showText(String text) {
   _ssd1306Display->display();
 }
 
-void Display::showProgress(String text, int val, int maxVal) {
+void Display::showProgress(const char* text, const int val, const int maxVal) {
   _printHeader();
   _ssd1306Display->setTextSize(2); // Draw 2X-scale text
   _ssd1306Display->setTextColor(WHITE);
@@ -56,7 +56,7 @@ void Display::showProgress(String text, int val, int maxVal) {
   _ssd1306Display->display();
 }
 
-void Display::showHomeScreen(byte wpm, unsigned int toneHz, OpMode opMode) {
+void Display::showHomeScreen(const byte wpm, const unsigned int toneHz, const OpMode opMode) {
   _printHeader();
   _ssd1306Display->setTextSize(2); // Draw 2X-scale text
   _ssd1306Display->setCursor(15, 15);
@@ -83,5 +83,5 @@ void Display::_printHeader() {
   _ssd1306Display->setTextSize(1);
   _ssd1306Display->setTextColor(WHITE);
   _ssd1306Display->setCursor(35, 2);
-  _ssd1306Display->println("Morseduino");
+  _ssd1306Display->println(this->_header);
 }

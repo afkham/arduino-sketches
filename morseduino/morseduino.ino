@@ -175,18 +175,20 @@ void setWpmDefaults() {
   if (dotLen >= MAX_DOT_LEN) dotLen = MAX_DOT_LEN; else if (dotLen <= MIN_DOT_LEN) dotLen = MIN_DOT_LEN;
 }
 
+const char* WPM_TXT = "WPM";
 void configureWpm() {
   EEPROM.write(DOT_LEN_ADDR, dotLen);
   decoder.setDotLength(dotLen);
   encoder.setDotLength(dotLen);
-  display.showProgress("WPM", getWpm(dotLen), getWpm(MIN_DOT_LEN)); // Max WPM
+  display.showProgress(WPM_TXT, getWpm(dotLen), getWpm(MIN_DOT_LEN)); // Max WPM
 }
 
+const char* TONE_TXT = "Tone(Hz)";
 void configureTone() {
   EEPROM.put(TONE_HZ_ADDR, toneHz);
   decoder.setTone(toneHz);
   encoder.setTone(toneHz);
-  display.showProgress("Tone(Hz)", toneHz, MAX_TONE);
+  display.showProgress(TONE_TXT, toneHz, MAX_TONE);
 }
 
 void setToneDefaults() {
