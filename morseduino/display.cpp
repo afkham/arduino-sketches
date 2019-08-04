@@ -59,22 +59,29 @@ void Display::showProgress(const char* text, const int val, const int maxVal) {
 void Display::showHomeScreen(const byte wpm, const unsigned int toneHz, const OpMode opMode) {
   _printHeader();
   _ssd1306Display->setTextSize(2); // Draw 2X-scale text
+  
+  // Show WPM
   _ssd1306Display->setCursor(15, 15);
-  String wpmText = "WPM  ";
-  wpmText.concat(wpm);
-  _ssd1306Display->println(wpmText);
+  _ssd1306Display->print(_wpmText);
+  _ssd1306Display->setCursor(75, 15);
+  _ssd1306Display->println(wpm);
+
+  // Show Tone
   _ssd1306Display->setCursor(15, 33);
-  String toneText = "Tone ";
-  toneText.concat(toneHz);
-  _ssd1306Display->println(toneText);
+  _ssd1306Display->print(_toneText);
+  _ssd1306Display->setCursor(75, 33);
+  _ssd1306Display->println(toneHz);
+
+  // Show
   _ssd1306Display->setCursor(15, 50);
-  String modeText = "Mode ";
+  _ssd1306Display->print(_modeText);
+  _ssd1306Display->setCursor(75, 50);
   if (opMode == dec) {
-    modeText.concat("dec");
+    _ssd1306Display->println(_decModeText);
   } else if (opMode == enc) {
-    modeText.concat("enc");
+    _ssd1306Display->println(_encModeText);
   }
-  _ssd1306Display->println(modeText);
+
   _ssd1306Display->display();
 }
 

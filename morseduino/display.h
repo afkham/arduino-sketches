@@ -38,6 +38,11 @@ class Display {
     void _printHeader();
     String _displayText;
     const char _header[11] = "Morseduino";
+    const char _wpmText[6] =  "WPM  ";
+    const char _toneText[6] = "Tone ";
+    const char _modeText[6] = "Mode ";
+    const char _decModeText[4] = "dec";
+    const char _encModeText[4] = "enc";
 };
 
 #endif
