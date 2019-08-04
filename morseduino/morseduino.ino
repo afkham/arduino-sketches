@@ -117,7 +117,7 @@ byte rotaryMode = MODE_WPM;
 
 void checkRotary() {
   // 0 = not pushed, 1 = pushed, 2 = long pushed
-  byte push = rotary.pushType(1000); // number of milliseconds button has to be pushed for it to be considered a long push.
+  byte push = rotary.pushType(700); // number of milliseconds button has to be pushed for it to be considered a long push.
   if ( push == 1  && !showHome) { // pushed while home screen is not shown
     if (rotaryMode == MODE_WPM) {
       rotaryMode = MODE_TONE;
@@ -130,6 +130,7 @@ void checkRotary() {
     if (!showHome) {
       display.showHomeScreen(getWpm(dotLen), toneHz, currentOpMode);
       showHome = true;
+      return; // No need to check rotation once you show home screen
     } else {
       showHome = false;
       rotaryMode = MODE_WPM;
@@ -137,29 +138,29 @@ void checkRotary() {
     }
   }
 
+  if(showHome) return; // Rotation is not valid when the home screen is shown
+
   // 0 = not turning, 1 = CW, 2 = CCW
   byte rotated = rotary.rotate();
-  if (!showHome) {
-    if (rotated == 1 ) { // CW
-      if (rotaryMode == MODE_WPM) {
-        dotLen -= dotLen / 20;
-        setWpmDefaults();
-        configureWpm();
-      } else if (rotaryMode == MODE_TONE) {
-        toneHz += 50;
-        setToneDefaults();
-        configureTone();
-      }
-    } else if ( rotated == 2 ) { // CCW
-      if (rotaryMode == MODE_WPM) {
-        dotLen += dotLen / 20;
-        setWpmDefaults();
-        configureWpm();
-      } else if (rotaryMode == MODE_TONE) {
-        toneHz -= 50;
-        setToneDefaults();
-        configureTone();
-      }
+  if (rotated == 1 ) { // CW
+    if (rotaryMode == MODE_WPM) {
+      dotLen -= dotLen / 20;
+      setWpmDefaults();
+      configureWpm();
+    } else if (rotaryMode == MODE_TONE) {
+      toneHz += 50;
+      setToneDefaults();
+      configureTone();
+    }
+  } else if ( rotated == 2 ) { // CCW
+    if (rotaryMode == MODE_WPM) {
+      dotLen += dotLen / 20;
+      setWpmDefaults();
+      configureWpm();
+    } else if (rotaryMode == MODE_TONE) {
+      toneHz -= 50;
+      setToneDefaults();
+      configureTone();
     }
   }
 }

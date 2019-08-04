@@ -41,8 +41,8 @@ class Display {
     const char _wpmText[6] =  "WPM  ";
     const char _toneText[6] = "Tone ";
     const char _modeText[6] = "Mode ";
-    const char _decModeText[4] = "dec";
-    const char _encModeText[4] = "enc";
+    const char _decModeText[4] = "DEC";
+    const char _encModeText[4] = "ENC";
 };
 
 #endif
