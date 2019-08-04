@@ -41,36 +41,42 @@ void Decoder::decode() {
       _symbolStartedAt = now;
     }
     tone(_tonePin, _toneHz);
+    return;
   } else {
     noTone(_tonePin);
     if (_symbolStartedAt != -1) {
-      if (_currentSymbolIndex > MAX_SYMBOLS) {
-        _garbageReceived = true;
-      } else if (!_garbageReceived) {
-        int now = millis();
-        if (now - _symbolStartedAt >= _dashLen) {
-          _currentSymbolBuff[_currentSymbolIndex++] = '_';
-        } else {
-          _currentSymbolBuff[_currentSymbolIndex++] = '.';
+        if (_currentSymbolIndex > MAX_SYMBOLS) {
+            _garbageReceived = true;
+            return;
+        } else if (!_garbageReceived) {
+            int now = millis();
+            if (now - _symbolStartedAt >= _dashLen) {
+                _currentSymbolBuff[_currentSymbolIndex++] = '_';
+            } else {
+                _currentSymbolBuff[_currentSymbolIndex++] = '.';
+            }
+            _symbolStartedAt = -1;
+            _lastSymbolReceivedAt = millis();
+            _lastCharReceivedAt = -1;
+            return;
         }
-        _symbolStartedAt = -1;
-        _lastSymbolReceivedAt = millis();
+    } else {
+      int now = millis();
+      if (_lastCharReceivedAt != -1 && now - _lastCharReceivedAt >= _wordSpacing) { // Have we completed a word?
+        #ifdef ENABLE_SERIAL
+        Serial.print(F(" "));
+        #endif
+        _display->showText(" ");
         _lastCharReceivedAt = -1;
+        return;
+      } else if (_lastSymbolReceivedAt != -1 && now - _lastSymbolReceivedAt >= _charSpacing) { // Have we completed a character?
+        _printChar(_currentSymbolBuff);
+        _garbageReceived = false;
+        _resetCurrentSymbolBuff();
+        _lastSymbolReceivedAt = -1;
+        _lastCharReceivedAt = millis();
+        return;
       }
-    }
-    int now = millis();
-    if (_lastCharReceivedAt != -1 && now - _lastCharReceivedAt > _wordSpacing) { // Have we completed a word?
-      #ifdef ENABLE_SERIAL
-      Serial.print(F(" "));
-      #endif
-      _display->showText(" ");
-      _lastCharReceivedAt = -1;
-    } else if (_lastSymbolReceivedAt != -1 && now - _lastSymbolReceivedAt > _charSpacing) { // Have we completed a character?
-      _printChar(_currentSymbolBuff);
-      _garbageReceived = false;
-      _resetCurrentSymbolBuff();
-      _lastSymbolReceivedAt = -1;
-      _lastCharReceivedAt = millis();
     }
   }
 }

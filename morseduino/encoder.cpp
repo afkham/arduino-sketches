@@ -20,6 +20,7 @@
 #include "datastructure.h"
 
 #include <Arduino.h>
+#include <avr/wdt.h>
 
 Encoder::Encoder(byte tonePin): _tonePin(tonePin) {}
 
@@ -32,14 +33,13 @@ void Encoder::setTone(int toneHz) {
 }
 
 void Encoder::encode() {
-  #ifdef ENABLE_SERIAL
   if (Serial.available() > 0) {
-    String strToPlay = Serial.readString();
-    byte i = 0;
-    int len = strToPlay.length();
+    String strToEncode = Serial.readString();
+    int i = 0;
+    int len = strToEncode.length();
     while (i < len) {
-      if (strToPlay[i] == '<') { // Handle joint characters
-        String tmp = strToPlay.substring(i);
+      if (strToEncode[i] == '<') { // Handle joint characters
+        String tmp = strToEncode.substring(i);
         int j = tmp.substring(1).indexOf('>');
         if (j == -1) {
           Serial.println(F("####### INVALID INPUT #######"));
@@ -50,14 +50,14 @@ void Encoder::encode() {
         Serial.print(tmp);
         i = i + j + 2;
       } else {
-        if (strToPlay[i] == ' ') {
+        if (strToEncode[i] == ' ') {
           delay(_wordSpacing);
         } else {
-          _playMorse(toLowerCase(strToPlay[i]));
+          _playMorse(toLowerCase(strToEncode[i]));
           delay(_charSpacing);
         }
-        Serial.print(strToPlay[i]);
-        if (strToPlay[i] == '=') {
+        Serial.print(strToEncode[i]);
+        if (strToEncode[i] == '=') {
           Serial.println();
         }
         i++;
@@ -65,7 +65,6 @@ void Encoder::encode() {
     }
     Serial.println();
   }
-  #endif
 }
 
 void Encoder::_playMorse(char normalChar[]) {
@@ -116,12 +115,14 @@ void Encoder::_pause(int delayTime) {
 }
 
 void Encoder::_di() {
+  wdt_reset(); // kick the watchdog
   tone(_tonePin, _toneHz, _dotLen);
   delay(_dotLen);
   _pause(_symbolSpacing);
 }
 
 void Encoder::_dah() {
+  wdt_reset(); // kick the watchdog
   tone(_tonePin, _toneHz, _dashLen);  // start playing a tone
   delay(_dashLen);               // hold in this position
   _pause(_symbolSpacing);

@@ -32,7 +32,7 @@ void Display::showText(String text) {
   _printHeader();
   _ssd1306Display->setTextColor(WHITE);
   _ssd1306Display->setCursor(0, 15);
-  if(_displayText.length() > 120) _displayText = ""; 
+  if(_displayText.length() > 100) _displayText = ""; 
   _displayText.concat(text);
   _ssd1306Display->println(_displayText);
   _ssd1306Display->display();

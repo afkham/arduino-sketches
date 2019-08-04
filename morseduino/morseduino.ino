@@ -40,7 +40,7 @@
 #define MAX_DOT_LEN 150
 #define MIN_DOT_LEN 20
 #define MAX_TONE 2200
-#define MIN_TONE 600
+#define MIN_TONE 300
 // ------------------------------------------------------------
 
 SimpleRotary rotary(SPEED_ENC_PIN_A, SPEED_ENC_PIN_B, SPEED_ENC_PIN_BUTTON);
@@ -87,7 +87,7 @@ void setup() {
 
   setToneDefaults();
   configureTone();
-  wdt_enable(WDTO_500MS); // Set watchdog timer to 500ms
+  wdt_enable(WDTO_1S); // Set watchdog timer to 1s
 }
 
 /**

@@ -35,7 +35,7 @@
     _dashLen = dotLen * 3; \
     _symbolSpacing = dotLen; \
     _charSpacing = dotLen * 3; \
-    _wordSpacing = dotLen * 7; \
+    _wordSpacing = dotLen * 4; \
 
 /*
     The following template is used for reading from PROGMEM
