@@ -18,6 +18,8 @@
 
 #include "display.h"
 
+#define TEXT_SIZE 1
+
 Display::Display(byte width, byte height) {
   _ssd1306Display = new Adafruit_SSD1306(width, height, &Wire, -1);
 }
@@ -29,12 +31,23 @@ bool Display::init() {
 }
 
 void Display::showText(const String text) {
-  _printHeader();
+  if(_txtCursorCol == 0 && _txtCursorRow == 0) {
+    _ssd1306Display->clearDisplay();
+  }
+  _ssd1306Display->setTextSize(TEXT_SIZE);
   _ssd1306Display->setTextColor(WHITE);
-  _ssd1306Display->setCursor(0, 15);
-  if(_displayText.length() > 100) _displayText = ""; 
-  _displayText.concat(text);
-  _ssd1306Display->println(_displayText);
+  _ssd1306Display->setCursor(_txtCursorCol, _txtCursorRow);
+  _txtCursorCol += 6 * TEXT_SIZE * text.length();
+
+  if(_txtCursorCol >= 110) {
+    _txtCursorCol = 0;
+    if(_txtCursorRow >=48) {
+      _txtCursorRow = _txtCursorCol = 0;  
+    } else {
+      _txtCursorRow += 8 * TEXT_SIZE;
+    }
+  }
+  _ssd1306Display->println(text);
   _ssd1306Display->display();
 }
 
@@ -57,6 +70,7 @@ void Display::showProgress(const char* text, const int val, const int maxVal) {
 }
 
 void Display::showHomeScreen(const byte wpm, const unsigned int toneHz, const OpMode opMode) {
+  _txtCursorCol = _txtCursorRow = 0;
   _printHeader();
   _ssd1306Display->setTextSize(2); // Draw 2X-scale text
   
