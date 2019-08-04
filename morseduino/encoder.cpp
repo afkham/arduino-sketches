@@ -20,7 +20,6 @@
 #include "datastructure.h"
 
 #include <Arduino.h>
-#include <avr/wdt.h>
 
 Encoder::Encoder(byte tonePin): _tonePin(tonePin) {}
 
@@ -115,14 +114,12 @@ void Encoder::_pause(int delayTime) {
 }
 
 void Encoder::_di() {
-  wdt_reset(); // kick the watchdog
   tone(_tonePin, _toneHz, _dotLen);
   delay(_dotLen);
   _pause(_symbolSpacing);
 }
 
 void Encoder::_dah() {
-  wdt_reset(); // kick the watchdog
   tone(_tonePin, _toneHz, _dashLen);  // start playing a tone
   delay(_dashLen);               // hold in this position
   _pause(_symbolSpacing);

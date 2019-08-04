@@ -16,7 +16,6 @@
   under the License.
 */
 #include <EEPROM.h>
-#include <avr/wdt.h>
 #include "rotary.h"
 #include "display.h"
 #include "encoder.h"
@@ -87,14 +86,12 @@ void setup() {
 
   setToneDefaults();
   configureTone();
-  wdt_enable(WDTO_1S); // Set watchdog timer to 1s
 }
 
 /**
    LOOP
 */
 void loop() {
-  wdt_reset(); // kick the watchdog
   if (digitalRead(MODE_SELECT_PIN)) {
     if (currentOpMode == invalid || currentOpMode == dec) { // If it has toggled
       currentOpMode = enc;
