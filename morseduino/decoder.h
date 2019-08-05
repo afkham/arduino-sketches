@@ -62,6 +62,9 @@ class Decoder {
     byte _lengthof(char const str[]);
     void _pause(int delayTime);
     void _resetCurrentSymbolBuff();
+
+    unsigned long _debounceTime;
+    byte _debounceDelay = 10;
 };
 
 #endif
