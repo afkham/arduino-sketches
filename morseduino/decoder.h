@@ -56,7 +56,6 @@ class Decoder {
     static const byte MAX_SYMBOLS = 10;
     char _currentSymbolBuff[MAX_SYMBOLS]; // Maximum possible symbols in Morse code is 10
     byte _currentSymbolIndex = 0; // index to the currentSymbolBuff
-    bool _garbageReceived = false; // Indicates whether the received symbol sequence is invalid
 
     void _printChar(char morseStr[]);
     void _resetCurrentSymbolBuff();

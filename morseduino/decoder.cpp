@@ -51,10 +51,13 @@ void Morseduino::Decoder::decode() {
       noTone(_tonePin);
       #endif
       if (_symbolStartedAt != -1) {
-          if (_currentSymbolIndex > MAX_SYMBOLS) {
-              _garbageReceived = true;
+          if (_currentSymbolIndex >= MAX_SYMBOLS) {
+              _currentSymbolIndex = 0;
+              _symbolStartedAt = -1;
+              _lastSymbolReceivedAt = millis();
+              _lastCharReceivedAt = -1;
               return;
-          } else if (!_garbageReceived) {
+          } else {
               int now = millis();
               if (now - _symbolStartedAt >= _dashLen) {
                   _currentSymbolBuff[_currentSymbolIndex++] = '_';
@@ -77,7 +80,6 @@ void Morseduino::Decoder::decode() {
           return;
         } else if (_lastSymbolReceivedAt != -1 && now - _lastSymbolReceivedAt >= _charSpacing) { // Have we completed a character?
           _printChar(_currentSymbolBuff);
-          _garbageReceived = false;
           _resetCurrentSymbolBuff();
           _lastSymbolReceivedAt = -1;
           _lastCharReceivedAt = millis();
