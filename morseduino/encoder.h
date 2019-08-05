@@ -42,7 +42,6 @@ class Encoder {
     void _pause(int delayTime);
     byte _lengthof(char const str[]);
     void _playMorse(char normalChar[]);
-    void _playMorse(String normalChar);
     void _playMorseSequence(char morseSequence[]);
 };
 

@@ -42,10 +42,14 @@ void Decoder::decode() {
       if (_symbolStartedAt == -1) {
         _symbolStartedAt = now;
       }
+      #ifndef TONE_OFF
       tone(_tonePin, _toneHz);
+      #endif
       return;
     } else {
+      #ifndef TONE_OFF
       noTone(_tonePin);
+      #endif
       if (_symbolStartedAt != -1) {
           if (_currentSymbolIndex > MAX_SYMBOLS) {
               _garbageReceived = true;
@@ -92,41 +96,17 @@ void Decoder::_resetCurrentSymbolBuff() {
   _currentSymbolIndex = 0;
 }
 
-void Decoder::_pause(int delayTime) {
-  noTone(_tonePin);
-  delay(delayTime);
-}
-
-//TODO: Duplicate fn in decoder and encoder
-byte Decoder::_lengthof(char const str[]) {
-  int i = 0;
-  while (str[i] != '\0') {
-    i++;
-  }
-  return i;
-}
-
-bool Decoder::_isEqual(char ch1[], char const ch2[]) {
-  if (_lengthof(ch1) != _lengthof(ch2)) return false;
-  int i = 0;
-  while (ch1[i] != '\0' && ch2[i] != '\0') {
-    if (ch1[i] != ch2[i]) return false;
-    i++;
-  }
-  return true;
-}
-
 void Decoder::_printChar(char morseStr[]) {
   for (int i = 0; i < ArraySize(morseMappings); i++) {
     MorseMapping mm;
     PROGMEM_readAnything (&morseMappings[i], mm);
-    if (_isEqual(morseStr, mm.morseSeq)) {
+    if (strcmp(morseStr, mm.morseSeq) == 0) {
       #ifdef ENABLE_SERIAL
       Serial.print(mm.ch);
       #endif
       _display->showText(mm.ch);
       #ifdef ENABLE_SERIAL
-      if (_isEqual(mm.ch, "=")) {
+      if (strcmp(mm.ch, "=") == 0) {
         Serial.println();
       }
       #endif

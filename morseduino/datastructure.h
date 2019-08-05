@@ -20,6 +20,7 @@
 #define MorseduinoDataStructure_h
 
 #define ENABLE_SERIAL 1
+// #define TONE_OFF 1
 
 /*
     There are rules to help people distinguish dots from dashes in Morse code.

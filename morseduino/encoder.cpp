@@ -33,26 +33,39 @@ void Encoder::setTone(int toneHz) {
 
 void Encoder::encode() {
   if (Serial.available() > 0) {
-    String strToEncode = Serial.readString();
+    String strFromSerial = Serial.readString();
+    int len = strFromSerial.length();
+    char strToEncode[len];
+    strFromSerial.toCharArray(strToEncode, len);
     int i = 0;
-    int len = strToEncode.length();
     while (i < len) {
       if (strToEncode[i] == '<') { // Handle joint characters
-        String tmp = strToEncode.substring(i);
-        int j = tmp.substring(1).indexOf('>');
-        if (j == -1) {
-          Serial.println(F("####### INVALID INPUT #######"));
-          return;
+        char jointChar[6];
+        int k = 0;
+        bool closingBracketFound = false;
+        for(int j = i; j < len; j++) {
+          jointChar[k] = strToEncode[j];
+          i = j;
+          if(strToEncode[j] == '>') {
+            closingBracketFound = true;
+            jointChar[k + 1] = '\0';
+            Serial.print(jointChar);
+            _playMorse(jointChar);
+            i++;
+            break;
+          }
+          if(!closingBracketFound) {
+            Serial.println(F("****** INVALID INPUT ******"));
+            return;
+          }
+          k++;
         }
-        tmp = tmp.substring(0, j + 2);
-        _playMorse(tmp);
-        Serial.print(tmp);
-        i = i + j + 2;
       } else {
         if (strToEncode[i] == ' ') {
           delay(_wordSpacing);
-        } else {
-          _playMorse(toLowerCase(strToEncode[i]));
+        } else if(strToEncode[i] != '\0') {
+          char ch[2] = {strToEncode[i], '\0'};
+          _playMorse(ch);
           delay(_charSpacing);
         }
         Serial.print(strToEncode[i]);
@@ -70,27 +83,16 @@ void Encoder::_playMorse(char normalChar[]) {
   for (byte i = 0; i < ArraySize(morseMappings); i++) {
     MorseMapping mm;
     PROGMEM_readAnything (&morseMappings[i], mm);
-    if (normalChar == mm.ch[0]) {
+    if (strcasecmp(normalChar, mm.ch) == 0)  {
       _playMorseSequence(mm.morseSeq);
       return;
     }
   }
-}
-
-void Encoder::_playMorse(String normalChar) {
-  for (byte i = 0; i < ArraySize(morseMappings); i++) {
-    MorseMapping mm;
-    PROGMEM_readAnything (&morseMappings[i], mm);
-    String str = mm.ch;
-    if (normalChar == str) {
-      _playMorseSequence(mm.morseSeq);
-      return;
-    }
-  }
+  Serial.println(F("****** INVALID INPUT ******"));
 }
 
 void Encoder::_playMorseSequence(char morseSeq[]) {
-  for (byte i = 0; i < _lengthof(morseSeq); i++) {
+  for (byte i = 0; i < strlen(morseSeq); i++) {
     if (morseSeq[i] == '.') {
       _di();
     } else if (morseSeq[i] == '_') {
@@ -99,28 +101,23 @@ void Encoder::_playMorseSequence(char morseSeq[]) {
   }
 }
 
-//TODO: Duplicate fn in decoder and encoder
-byte Encoder::_lengthof(char const str[]) {
-  int i = 0;
-  while (str[i] != '\0') {
-    i++;
-  }
-  return i;
-}
-
 void Encoder::_pause(int delayTime) {
   noTone(_tonePin);
   delay(delayTime);
 }
 
 void Encoder::_di() {
+  #ifndef TONE_OFF
   tone(_tonePin, _toneHz, _dotLen);
+  #endif
   delay(_dotLen);
   _pause(_symbolSpacing);
 }
 
 void Encoder::_dah() {
+  #ifndef TONE_OFF
   tone(_tonePin, _toneHz, _dashLen);  // start playing a tone
+  #endif
   delay(_dashLen);               // hold in this position
   _pause(_symbolSpacing);
 }

@@ -58,9 +58,6 @@ class Decoder {
     bool _garbageReceived = false; // Indicates whether the received symbol sequence is invalid
 
     void _printChar(char morseStr[]);
-    bool _isEqual(char ch1[], char const ch2[]);
-    byte _lengthof(char const str[]);
-    void _pause(int delayTime);
     void _resetCurrentSymbolBuff();
 
     unsigned long _debounceTime;
