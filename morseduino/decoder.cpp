@@ -21,19 +21,19 @@
 
 #include <Arduino.h>
 
-Decoder::Decoder(Display* display, byte keyPin, byte tonePin): _display(display), _keyPin(keyPin), _tonePin(tonePin) {}
+Morseduino::Decoder::Decoder(Display* display, byte keyPin, byte tonePin): _display(display), _keyPin(keyPin), _tonePin(tonePin) {}
 
-Decoder::~Decoder() {delete _display;}
+Morseduino::Decoder::~Decoder() {delete _display;}
 
-void Decoder::setDotLength(byte dotLen) {
+void Morseduino::Decoder::setDotLength(byte dotLen) {
   WPM_RULES
 }
 
-void Decoder::setTone(int toneHz) {
+void Morseduino::Decoder::setTone(int toneHz) {
   _toneHz = toneHz;
 }
 
-void Decoder::decode() {
+void Morseduino::Decoder::decode() {
   int currentTime = millis();
   if (currentTime - _debounceTime >= _debounceDelay) {
     byte morseKeyState = digitalRead(_keyPin);
@@ -89,14 +89,14 @@ void Decoder::decode() {
   }
 }
 
-void Decoder::_resetCurrentSymbolBuff() {
+void Morseduino::Decoder::_resetCurrentSymbolBuff() {
   for (int i = 0; i < MAX_SYMBOLS; i++) {
     _currentSymbolBuff[i] = '\0';
   }
   _currentSymbolIndex = 0;
 }
 
-void Decoder::_printChar(char morseStr[]) {
+void Morseduino::Decoder::_printChar(char morseStr[]) {
   for (int i = 0; i < ArraySize(morseMappings); i++) {
     MorseMapping mm;
     PROGMEM_readAnything (&morseMappings[i], mm);

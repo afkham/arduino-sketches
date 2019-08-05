@@ -20,6 +20,7 @@
 
 #include <Arduino.h>
 
+namespace Morseduino {
 class Encoder {
   public:
     Encoder(byte tonePin);
@@ -43,6 +44,7 @@ class Encoder {
     byte _lengthof(char const str[]);
     void _playMorse(char normalChar[]);
     void _playMorseSequence(char morseSequence[]);
+};
 };
 
 #endif

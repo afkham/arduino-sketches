@@ -20,17 +20,17 @@
 
 #define TEXT_SIZE 1
 
-Display::Display(byte width, byte height) {
+Morseduino::Display::Display(byte width, byte height) {
   _ssd1306Display = new Adafruit_SSD1306(width, height, &Wire, -1);
 }
 
-Display::~Display() {delete _ssd1306Display;}
+Morseduino::Display::~Display() {delete _ssd1306Display;}
 
-bool Display::init() {
+bool Morseduino::Display::init() {
   return _ssd1306Display->begin(SSD1306_SWITCHCAPVCC, 0x3C);
 }
 
-void Display::showText(const String text) {
+void Morseduino::Display::showText(const String text) {
   if(_txtCursorCol == 0 && _txtCursorRow == 0) {
     _ssd1306Display->clearDisplay();
   }
@@ -51,7 +51,7 @@ void Display::showText(const String text) {
   _ssd1306Display->display();
 }
 
-void Display::showProgress(const char* text, const int val, const int maxVal) {
+void Morseduino::Display::showProgress(const char* text, const int val, const int maxVal) {
   _printHeader();
   _ssd1306Display->setTextSize(2); // Draw 2X-scale text
   _ssd1306Display->setTextColor(WHITE);
@@ -69,7 +69,7 @@ void Display::showProgress(const char* text, const int val, const int maxVal) {
   _ssd1306Display->display();
 }
 
-void Display::showHomeScreen(const byte wpm, const unsigned int toneHz, const OpMode opMode) {
+void Morseduino::Display::showHomeScreen(const byte wpm, const unsigned int toneHz, const OpMode opMode) {
   _txtCursorCol = _txtCursorRow = 0;
   _printHeader();
   _ssd1306Display->setTextSize(2); // Draw 2X-scale text
@@ -99,7 +99,7 @@ void Display::showHomeScreen(const byte wpm, const unsigned int toneHz, const Op
   _ssd1306Display->display();
 }
 
-void Display::_printHeader() {
+void Morseduino::Display::_printHeader() {
   _ssd1306Display->clearDisplay();
   _ssd1306Display->setTextSize(1);
   _ssd1306Display->setTextColor(WHITE);

@@ -21,17 +21,17 @@
 
 #include <Arduino.h>
 
-Encoder::Encoder(byte tonePin): _tonePin(tonePin) {}
+Morseduino::Encoder::Encoder(byte tonePin): _tonePin(tonePin) {}
 
-void Encoder::setDotLength(byte dotLen) {
+void Morseduino::Encoder::setDotLength(byte dotLen) {
   WPM_RULES
 }
 
-void Encoder::setTone(int toneHz) {
+void Morseduino::Encoder::setTone(int toneHz) {
   _toneHz = toneHz;
 }
 
-void Encoder::encode() {
+void Morseduino::Encoder::encode() {
   if (Serial.available() > 0) {
     String strFromSerial = Serial.readString();
     int len = strFromSerial.length();
@@ -79,7 +79,7 @@ void Encoder::encode() {
   }
 }
 
-void Encoder::_playMorse(char normalChar[]) {
+void Morseduino::Encoder::_playMorse(char normalChar[]) {
   for (byte i = 0; i < ArraySize(morseMappings); i++) {
     MorseMapping mm;
     PROGMEM_readAnything (&morseMappings[i], mm);
@@ -91,7 +91,7 @@ void Encoder::_playMorse(char normalChar[]) {
   Serial.println(F("****** INVALID INPUT ******"));
 }
 
-void Encoder::_playMorseSequence(char morseSeq[]) {
+void Morseduino::Encoder::_playMorseSequence(char morseSeq[]) {
   for (byte i = 0; i < strlen(morseSeq); i++) {
     if (morseSeq[i] == '.') {
       _di();
@@ -101,12 +101,12 @@ void Encoder::_playMorseSequence(char morseSeq[]) {
   }
 }
 
-void Encoder::_pause(int delayTime) {
+void Morseduino::Encoder::_pause(int delayTime) {
   noTone(_tonePin);
   delay(delayTime);
 }
 
-void Encoder::_di() {
+void Morseduino::Encoder::_di() {
   #ifndef TONE_OFF
   tone(_tonePin, _toneHz, _dotLen);
   #endif
@@ -114,7 +114,7 @@ void Encoder::_di() {
   _pause(_symbolSpacing);
 }
 
-void Encoder::_dah() {
+void Morseduino::Encoder::_dah() {
   #ifndef TONE_OFF
   tone(_tonePin, _toneHz, _dashLen);  // start playing a tone
   #endif

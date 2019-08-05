@@ -3,8 +3,8 @@
 
 #include "Arduino.h"
 
-class SimpleRotary
-{
+namespace Morseduino {
+class SimpleRotary {
   public:
     SimpleRotary(byte pinA, byte pinB, byte pinS);
     byte rotate();
@@ -41,6 +41,7 @@ class SimpleRotary
     bool _statusS_prev = false;
     void _updateTime();
     void _setInputPins();
+};
 };
 
 #endif

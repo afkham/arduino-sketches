@@ -42,10 +42,10 @@
 #define MIN_TONE 300
 // ------------------------------------------------------------
 
-SimpleRotary rotary(SPEED_ENC_PIN_A, SPEED_ENC_PIN_B, SPEED_ENC_PIN_BUTTON);
-Display display(128, 64);
-Decoder decoder(&display, KEY_PIN, TONE_PIN);
-Encoder encoder(TONE_PIN);
+Morseduino::SimpleRotary rotary(SPEED_ENC_PIN_A, SPEED_ENC_PIN_B, SPEED_ENC_PIN_BUTTON);
+Morseduino::Display display(128, 64);
+Morseduino::Decoder decoder(&display, KEY_PIN, TONE_PIN);
+Morseduino::Encoder encoder(TONE_PIN);
 
 
 int toneHz = 1850;      // music tone/pitch in Hertz

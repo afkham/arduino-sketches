@@ -30,7 +30,7 @@
 #include "Arduino.h"
 #include "rotary.h"
 
-SimpleRotary::SimpleRotary(byte pinA, byte pinB, byte pinS)
+Morseduino::SimpleRotary::SimpleRotary(byte pinA, byte pinB, byte pinS)
 {
   _pinA = pinA;
   _pinB = pinB;
@@ -54,7 +54,7 @@ SimpleRotary::SimpleRotary(byte pinA, byte pinB, byte pinS)
 
 	@since v0.1;
 **/
-void SimpleRotary::setTrigger(byte i)
+void Morseduino::SimpleRotary::setTrigger(byte i)
 {
   _trigger = i;
   _setInputPins();
@@ -73,7 +73,7 @@ void SimpleRotary::setTrigger(byte i)
 
 	@since v0.1;
 **/
-void SimpleRotary::setDebounceDelay(int i)
+void Morseduino::SimpleRotary::setDebounceDelay(int i)
 {
   _debounceRDelay = i;
 }
@@ -93,7 +93,7 @@ void SimpleRotary::setDebounceDelay(int i)
 
 	@since v0.1;
 **/
-void SimpleRotary::setErrorDelay(int i)
+void Morseduino::SimpleRotary::setErrorDelay(int i)
 {
   _errorDelay = i;
 }
@@ -109,7 +109,7 @@ void SimpleRotary::setErrorDelay(int i)
 
 	@since v0.1;
 **/
-byte SimpleRotary::rotate()
+byte Morseduino::SimpleRotary::rotate()
 {
   byte _dir = 0x00;
   _updateTime();
@@ -157,7 +157,7 @@ byte SimpleRotary::rotate()
 	@since v0.1;
 	@return byte, value of turned knob.
 **/
-byte SimpleRotary::push() {
+byte Morseduino::SimpleRotary::push() {
   _updateTime();
   byte val = 0x00;
 
@@ -184,7 +184,7 @@ byte SimpleRotary::push() {
 
 	@return int, time in MS that the button has been held down.
 **/
-int SimpleRotary::pushTime() {
+int Morseduino::SimpleRotary::pushTime() {
   unsigned int t = 0;
   byte s = push();
   if ( !_statusS &&  !_statusS_prev ) {
@@ -210,7 +210,7 @@ int SimpleRotary::pushTime() {
 
 	@since v0.1;
 **/
-void SimpleRotary::resetPush() {
+void Morseduino::SimpleRotary::resetPush() {
   _updateTime();
   _pushTime = _currentTime;
 }
@@ -235,7 +235,7 @@ void SimpleRotary::resetPush() {
 
 	@return byte
 **/
-byte SimpleRotary::pushLong(int i) {
+byte Morseduino::SimpleRotary::pushLong(int i) {
   unsigned int time = pushTime();
   byte val = 0x00;
 
@@ -265,7 +265,7 @@ byte SimpleRotary::pushLong(int i) {
 
 	@return byte
 **/
-byte SimpleRotary::pushType(int i = 1000) {
+byte Morseduino::SimpleRotary::pushType(int i = 1000) {
   _updateTime();
   _statusS = ( digitalRead(_pinS) == _trigger ) ? true : false;
   byte val = 0x00;
@@ -311,7 +311,7 @@ byte SimpleRotary::pushType(int i = 1000) {
 
 	@since v0.2;
 **/
-void SimpleRotary::_setInputPins() {
+void Morseduino::SimpleRotary::_setInputPins() {
   if ( _trigger == HIGH ) {
     pinMode(_pinA, INPUT_PULLUP);
     pinMode(_pinB, INPUT_PULLUP);
@@ -330,7 +330,7 @@ void SimpleRotary::_setInputPins() {
 
 	@since v0.1;
 **/
-void SimpleRotary::_updateTime()
+void Morseduino::SimpleRotary::_updateTime()
 {
   _currentTime = millis();
 }

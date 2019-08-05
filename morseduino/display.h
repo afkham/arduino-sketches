@@ -24,6 +24,7 @@
 #include <Adafruit_SSD1306.h>
 #include "datastructure.h"
 
+namespace Morseduino {
 class Display {
   public:
     Display(byte width, byte height);
@@ -43,6 +44,7 @@ class Display {
     const char _modeText[6] = "Mode ";
     const char _decModeText[4] = "DEC";
     const char _encModeText[4] = "ENC";
+};
 };
 
 #endif

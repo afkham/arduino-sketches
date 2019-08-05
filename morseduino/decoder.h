@@ -21,6 +21,7 @@
 #include <Arduino.h>
 #include "display.h"
 
+namespace Morseduino {
 class Decoder {
   public:
     Decoder(Display* display, byte keyPin, byte tonePin);
@@ -62,6 +63,7 @@ class Decoder {
 
     unsigned long _debounceTime;
     byte _debounceDelay = 10;
+};
 };
 
 #endif
