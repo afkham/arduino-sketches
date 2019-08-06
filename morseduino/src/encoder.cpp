@@ -54,10 +54,11 @@ void Morseduino::Encoder::encode() {
             i++;
             break;
           }
-          if(!closingBracketFound) {
-            Serial.println(F("****** INVALID INPUT ******"));
-            return;
-          }
+          //TODO: BUG here
+          // if(!closingBracketFound) {
+          //   Serial.println(F("****** NO closing brackets. INVALID INPUT ******"));
+          //   return;
+          // }
           k++;
         }
       } else {

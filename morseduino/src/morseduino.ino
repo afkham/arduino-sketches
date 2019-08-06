@@ -15,6 +15,7 @@
   specific language governing permissions and limitations
   under the License.
 */
+#include <Arduino.h>
 #include <EEPROM.h>
 #include "rotary.h"
 #include "display.h"
@@ -56,6 +57,12 @@ OpMode currentOpMode = invalid;
 bool showHome = true;
 // ------------------------------------------------------------
 
+void setWpmDefaults();
+void configureWpm();
+void setToneDefaults();
+void configureTone();
+byte getWpm(int);
+void checkRotary();
 
 /**
    SETUP
