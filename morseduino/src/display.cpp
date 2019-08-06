@@ -20,38 +20,38 @@
 
 #define TEXT_SIZE 1
 
-Morseduino::Display::Display(byte width, byte height) {
+Morseduino::Display::Display(uint8_t width, uint8_t height) {
     _ssd1306Display = new Adafruit_SSD1306(width, height, &Wire, -1);
 }
 
-Morseduino::Display::~Display() { delete _ssd1306Display; }
+Morseduino::Display::~Display() = default;
 
 bool Morseduino::Display::init() {
     return _ssd1306Display->begin(SSD1306_SWITCHCAPVCC, 0x3C);
 }
 
-void Morseduino::Display::showText(const String text) {
-    if (_txtCursorCol == 0 && _txtCursorRow == 0) {
+void Morseduino::Display::showText(const String& text) {
+    if (_currentX == 0 && _currentY == 0) {
         _ssd1306Display->clearDisplay();
     }
     _ssd1306Display->setTextSize(TEXT_SIZE);
     _ssd1306Display->setTextColor(WHITE);
-    _ssd1306Display->setCursor(_txtCursorCol, _txtCursorRow);
-    _txtCursorCol += 6 * TEXT_SIZE * text.length();
+    _ssd1306Display->setCursor(_currentX, _currentY);
+    _currentX += 6 * TEXT_SIZE * text.length();
 
-    if (_txtCursorCol >= 110) {
-        _txtCursorCol = 0;
-        if (_txtCursorRow >= 48) {
-            _txtCursorRow = _txtCursorCol = 0;
+    if (_currentX >= 110) {
+        _currentX = 0;
+        if (_currentY >= 48) {
+            _currentY = _currentX = 0;
         } else {
-            _txtCursorRow += 8 * TEXT_SIZE;
+            _currentY += 8 * TEXT_SIZE;
         }
     }
     _ssd1306Display->println(text);
     _ssd1306Display->display();
 }
 
-void Morseduino::Display::showProgress(const char *text, const int val, const int maxVal) {
+void Morseduino::Display::showProgress(const char *text, const uint16_t val, const uint16_t maxVal) {
     _printHeader();
     _ssd1306Display->setTextSize(2); // Draw 2X-scale text
     _ssd1306Display->setTextColor(WHITE);
@@ -62,15 +62,15 @@ void Morseduino::Display::showProgress(const char *text, const int val, const in
 
     _ssd1306Display->drawRect(15, 55, 100, 5, WHITE);
     _ssd1306Display->fillRect(15, 55, round((float) 100 * val / maxVal), 5, WHITE);
-    for (byte i = 0; i < 90; i += 10) {
+    for (uint8_t i = 0; i < 90; i += 10) {
         _ssd1306Display->drawPixel(25 + i, 60, WHITE);
     }
 
     _ssd1306Display->display();
 }
 
-void Morseduino::Display::showHomeScreen(const byte wpm, const unsigned int toneHz, const OpMode opMode) {
-    _txtCursorCol = _txtCursorRow = 0;
+void Morseduino::Display::showHomeScreen(const uint8_t wpm, const uint16_t toneHz, const OpMode opMode) {
+    _currentX = _currentY = 0;
     _printHeader();
     _ssd1306Display->setTextSize(2); // Draw 2X-scale text
 
@@ -105,4 +105,8 @@ void Morseduino::Display::_printHeader() {
     _ssd1306Display->setTextColor(WHITE);
     _ssd1306Display->setCursor(35, 2);
     _ssd1306Display->println(this->_header);
+}
+
+void Morseduino::Display::clear() {
+    _currentX = _currentY = 0;
 }

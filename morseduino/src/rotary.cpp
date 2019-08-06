@@ -1,4 +1,21 @@
 /*
+   Copyright (c) 2019, Afkham Azeez (http://me.afkham.org) All Rights Reserved.
+
+   WSO2 Inc. licenses this file to you under the Apache License,
+   Version 2.0 (the "License"); you may not use this file except
+   in compliance with the License.
+   You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing,
+  software distributed under the License is distributed on an
+  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  KIND, either express or implied.  See the License for the
+  specific language governing permissions and limitations
+  under the License.
+*/
+/*
   ===============================================================================================================
   SimpleRotary.h
   Library for using rotary encoders with an Arduino
@@ -13,24 +30,11 @@
   - Basic debouncing of rotary / button.
   - Basic error correcting of out-of-sync rotational readings.
   - Use of both high and low triggers.
-
-  ===============================================================================================================
-
-  v1.0 - June 1, 2019
-  Written by MPrograms
-  Github: [https://github.com/mprograms/]
-
-  Release under the GNU General Public License v3
-  [https://www.gnu.org/licenses/gpl-3.0.en.html]
-
-  ===============================================================================================================
-
 */
-
 #include "Arduino.h"
 #include "rotary.h"
 
-Morseduino::SimpleRotary::SimpleRotary(byte pinA, byte pinB, byte pinS) {
+Morseduino::SimpleRotary::SimpleRotary(uint8_t pinA, uint8_t pinB, uint8_t pinS) {
     _pinA = pinA;
     _pinB = pinB;
     _pinS = pinS;
@@ -51,7 +55,7 @@ Morseduino::SimpleRotary::SimpleRotary(byte pinA, byte pinB, byte pinS) {
 
 	@since v0.1;
 **/
-void Morseduino::SimpleRotary::setTrigger(byte i) {
+void Morseduino::SimpleRotary::setTrigger(uint8_t i) {
     _trigger = i;
     _setInputPins();
 }
@@ -69,7 +73,7 @@ void Morseduino::SimpleRotary::setTrigger(byte i) {
 
 	@since v0.1;
 **/
-void Morseduino::SimpleRotary::setDebounceDelay(int i) {
+void Morseduino::SimpleRotary::setDebounceDelay(uint8_t i) {
     _debounceRDelay = i;
 }
 
@@ -88,7 +92,7 @@ void Morseduino::SimpleRotary::setDebounceDelay(int i) {
 
 	@since v0.1;
 **/
-void Morseduino::SimpleRotary::setErrorDelay(int i) {
+void Morseduino::SimpleRotary::setErrorDelay(uint8_t i) {
     _errorDelay = i;
 }
 
@@ -103,14 +107,14 @@ void Morseduino::SimpleRotary::setErrorDelay(int i) {
 
 	@since v0.1;
 **/
-byte Morseduino::SimpleRotary::rotate() {
-    byte _dir = 0x00;
+uint8_t Morseduino::SimpleRotary::rotate() {
+    uint8_t _dir = 0x00;
     _updateTime();
 
     if (_currentTime >= (_debounceRTime + _debounceRDelay)) {
 
-        _statusA = (digitalRead(_pinA) == _trigger ? true : false);
-        _statusB = (digitalRead(_pinB) == _trigger ? true : false);
+        _statusA = digitalRead(_pinA) == _trigger;
+        _statusB = digitalRead(_pinB) == _trigger;
 
         if (!_statusA && _statusA_prev) {
 
@@ -148,13 +152,13 @@ byte Morseduino::SimpleRotary::rotate() {
 	0x02 = Counter-Clockwise
 
 	@since v0.1;
-	@return byte, value of turned knob.
+	@return uint8_t, value of turned knob.
 **/
-byte Morseduino::SimpleRotary::push() {
+uint8_t Morseduino::SimpleRotary::push() {
     _updateTime();
-    byte val = 0x00;
+    uint8_t val = 0x00;
 
-    _statusS = (digitalRead(_pinS) == _trigger ? true : false);
+    _statusS = digitalRead(_pinS) == _trigger;
 
     if (_currentTime >= _debounceSTime + _debounceSDelay) {
         if (!_statusS && _statusS_prev) {
@@ -175,11 +179,10 @@ byte Morseduino::SimpleRotary::push() {
 
 	@since v0.1;
 
-	@return int, time in MS that the button has been held down.
+	@return uint16_t, time in MS that the button has been held down.
 **/
-int Morseduino::SimpleRotary::pushTime() {
-    unsigned int t = 0;
-    byte s = push();
+uint16_t Morseduino::SimpleRotary::pushTime() {
+    uint16_t t = 0;
     if (!_statusS && !_statusS_prev) {
         t = _currentTime - _pushTime;
     }
@@ -191,10 +194,12 @@ int Morseduino::SimpleRotary::pushTime() {
 	RESET PUSH TIMER
 	Resets the push time back to the current time.
 
-	Use this function if you want to create a long press that will reset itseld after (n) milliseconds thus causing a pulse to be created every time it resets. For example if you want to have the button do somthing each time it is held down for 1 second you would call:
+	Use this function if you want to create a long press that will reset itseld after (n) milliseconds thus
+    causing a pulse to be created every time it resets. For example if you want to have the button do something
+    each time it is held down for 1 second you would call:
 
 	void loop(){
-		int t = rotary.pushTime();
+		uint16_t t = rotary.pushTime();
 		if ( t > 1000 ) {
 			rotary.resetPush();
 			// do something really cool
@@ -214,23 +219,24 @@ void Morseduino::SimpleRotary::resetPush() {
 	Checks to see if the button has been held down for (n) milliseconds.
 
 	If placed in a loop, this function will return a steady stream of 0's until the button has
-	been held down long enough. Once the button has been held down (n)th milliseconds, a pulse of 1 will be produced. If the button is continued to be held down past this, only 0's will be produced.
+	been held down long enough. Once the button has been held down (n)th milliseconds, a pulse of 1 will be produced.
+    If the button is continued to be held down past this, only 0's will be produced.
 	The button needs to be released and then pressed again in order to reset.
 
 	Returned values
 	0x00 = Button not pressed long enough
 	0x01 = Button was pressed long enough.
 
-	@param i, int, the number of milliseconds the button needs to be pressed in order
+	@param i, uint16_t, the number of milliseconds the button needs to be pressed in order
 				   to be considered a long press.
 
 	@since v0.1;
 
-	@return byte
+	@return uint8_t
 **/
-byte Morseduino::SimpleRotary::pushLong(int i) {
-    unsigned int time = pushTime();
-    byte val = 0x00;
+uint8_t Morseduino::SimpleRotary::pushLong(uint16_t i) {
+    uint16_t time = pushTime();
+    uint8_t val = 0x00;
 
     if ((_currentTime + time > _currentTime + i) && !_pulse) {
         val = 0x01;
@@ -244,24 +250,25 @@ byte Morseduino::SimpleRotary::pushLong(int i) {
 	GET BUTTON PUSH TYPE
 	Checks to see if the button push is a short or long push
 
-	Note: Unlike push(), pushType() generates a return value for a short press only on button release. This allows us to track a long press without a false positive of a short press. It is for this reason that you should use this function if you are tying to check for a long or short press in the same function.
+	Note: Unlike push(), pushType() generates a return value for a short press only on button release.
+    This allows us to track a long press without a false positive of a short press. It is for this reason that you should use this function if you are tying to check for a long or short press in the same function.
 
 	Returned values
 	0x00 = Button not pressed.
 	0x01 = Button was pressed.
 	0x00 = Button was pressed for n milliseconds.
 
-	@param i, int, the number of milliseconds the button needs to be pressed in order
+	@param i, uint16_t, the number of milliseconds the button needs to be pressed in order
 				   to be considered a long press.
 
 	@since v1.1.0;
 
-	@return byte
+	@return uint8_t
 **/
-byte Morseduino::SimpleRotary::pushType(int i = 1000) {
+uint8_t Morseduino::SimpleRotary::pushType(uint16_t i = 1000) {
     _updateTime();
-    _statusS = (digitalRead(_pinS) == _trigger) ? true : false;
-    byte val = 0x00;
+    _statusS = digitalRead(_pinS) == _trigger;
+    uint8_t val = 0x00;
 
     if (_currentTime >= _debounceSTime + _debounceSDelay) {
 

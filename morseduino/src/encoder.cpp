@@ -21,29 +21,29 @@
 
 #include <Arduino.h>
 
-Morseduino::Encoder::Encoder(byte tonePin) : _tonePin(tonePin) {}
+Morseduino::Encoder::Encoder(uint8_t tonePin) : _tonePin(tonePin) {}
 
-void Morseduino::Encoder::setDotLength(byte dotLen) {
+void Morseduino::Encoder::setDotLength(uint8_t dotLen) {
     WPM_RULES
 }
 
-void Morseduino::Encoder::setTone(int toneHz) {
+void Morseduino::Encoder::setTone(uint16_t toneHz) {
     _toneHz = toneHz;
 }
 
 void Morseduino::Encoder::encode() {
     if (Serial.available() > 0) {
         String strFromSerial = Serial.readString();
-        int len = strFromSerial.length();
+        unsigned int len = strFromSerial.length();
         char strToEncode[len];
         strFromSerial.toCharArray(strToEncode, len);
-        int i = 0;
+        unsigned int i = 0;
         while (i < len) {
             if (strToEncode[i] == '<') { // Handle joint characters
                 char jointChar[6];
-                int k = 0;
+                uint8_t k = 0;
                 bool closingBracketFound = false;
-                for (int j = i; j < len; j++) {
+                for (uint8_t j = i; j < len; j++) {
                     jointChar[k] = strToEncode[j];
                     i = j;
                     if (strToEncode[j] == '>') {
@@ -51,6 +51,7 @@ void Morseduino::Encoder::encode() {
                         jointChar[k + 1] = '\0';
                         Serial.print(jointChar);
                         _playMorse(jointChar);
+                        delay(_charSpacing);
                         i++;
                         break;
                     }
@@ -80,7 +81,7 @@ void Morseduino::Encoder::encode() {
 }
 
 void Morseduino::Encoder::_playMorse(char normalChar[]) {
-    for (byte i = 0; i < ArraySize(morseMappings); i++) {
+    for (uint8_t i = 0; i < ArraySize(morseMappings); i++) {
         MorseMapping mm;
         PROGMEM_readAnything(&morseMappings[i], mm);
         if (strcasecmp(normalChar, mm.ch) == 0) {
@@ -92,7 +93,7 @@ void Morseduino::Encoder::_playMorse(char normalChar[]) {
 }
 
 void Morseduino::Encoder::_playMorseSequence(char morseSeq[]) {
-    for (byte i = 0; i < strlen(morseSeq); i++) {
+    for (uint8_t i = 0; i < strlen(morseSeq); i++) {
         if (morseSeq[i] == '.') {
             _di();
         } else if (morseSeq[i] == '_') {
@@ -101,7 +102,7 @@ void Morseduino::Encoder::_playMorseSequence(char morseSeq[]) {
     }
 }
 
-void Morseduino::Encoder::_pause(int delayTime) {
+void Morseduino::Encoder::_pause(uint8_t delayTime) {
     noTone(_tonePin);
     delay(delayTime);
 }

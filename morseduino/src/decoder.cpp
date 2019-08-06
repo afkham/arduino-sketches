@@ -21,26 +21,26 @@
 
 #include <Arduino.h>
 
-Morseduino::Decoder::Decoder(Display *display, byte keyPin, byte tonePin) : _display(display), _keyPin(keyPin),
-                                                                            _tonePin(tonePin) {}
+Morseduino::Decoder::Decoder(Display *display, uint8_t keyPin, uint8_t tonePin) : _display(display), _keyPin(keyPin),
+                                                                                  _tonePin(tonePin) {}
 
 Morseduino::Decoder::~Decoder() { delete _display; }
 
-void Morseduino::Decoder::setDotLength(byte dotLen) {
+void Morseduino::Decoder::setDotLength(uint8_t dotLen) {
     WPM_RULES
 }
 
-void Morseduino::Decoder::setTone(int toneHz) {
+void Morseduino::Decoder::setTone(uint16_t toneHz) {
     _toneHz = toneHz;
 }
 
 void Morseduino::Decoder::decode() {
-    int currentTime = millis();
+    uint64_t currentTime = millis();
     if (currentTime - _debounceTime >= _debounceDelay) {
-        byte morseKeyState = digitalRead(_keyPin);
+        uint8_t morseKeyState = digitalRead(_keyPin);
         if (morseKeyState == HIGH) {
-            int now = millis();
-            if (_symbolStartedAt == -1) {
+            uint64_t now = millis();
+            if (_symbolStartedAt == 0) {
                 _symbolStartedAt = now;
             }
 #ifndef TONE_OFF
@@ -51,40 +51,40 @@ void Morseduino::Decoder::decode() {
 #ifndef TONE_OFF
             noTone(_tonePin);
 #endif
-            if (_symbolStartedAt != -1) {
+            if (_symbolStartedAt != 0) {
                 if (_currentSymbolIndex >= MAX_SYMBOLS) {
                     _currentSymbolIndex = 0;
-                    _symbolStartedAt = -1;
+                    _symbolStartedAt = 0;
                     _lastSymbolReceivedAt = millis();
-                    _lastCharReceivedAt = -1;
+                    _lastCharReceivedAt = 0;
                     return;
                 } else {
-                    int now = millis();
+                    uint32_t now = millis();
                     if (now - _symbolStartedAt >= _dashLen) {
                         _currentSymbolBuff[_currentSymbolIndex++] = '_';
                     } else {
                         _currentSymbolBuff[_currentSymbolIndex++] = '.';
                     }
-                    _symbolStartedAt = -1;
+                    _symbolStartedAt = 0;
                     _lastSymbolReceivedAt = millis();
-                    _lastCharReceivedAt = -1;
+                    _lastCharReceivedAt = 0;
                     return;
                 }
             } else {
-                int now = millis();
-                if (_lastCharReceivedAt != -1 &&
+                uint32_t now = millis();
+                if (_lastCharReceivedAt != 0 &&
                     now - _lastCharReceivedAt >= _wordSpacing) { // Have we completed a word?
 #ifdef ENABLE_SERIAL
                     Serial.print(F(" "));
 #endif
                     _display->showText(" ");
-                    _lastCharReceivedAt = -1;
+                    _lastCharReceivedAt = 0;
                     return;
-                } else if (_lastSymbolReceivedAt != -1 &&
+                } else if (_lastSymbolReceivedAt != 0 &&
                            now - _lastSymbolReceivedAt >= _charSpacing) { // Have we completed a character?
                     _printChar(_currentSymbolBuff);
                     _resetCurrentSymbolBuff();
-                    _lastSymbolReceivedAt = -1;
+                    _lastSymbolReceivedAt = 0;
                     _lastCharReceivedAt = millis();
                     return;
                 }
@@ -95,14 +95,14 @@ void Morseduino::Decoder::decode() {
 }
 
 void Morseduino::Decoder::_resetCurrentSymbolBuff() {
-    for (int i = 0; i < MAX_SYMBOLS; i++) {
-        _currentSymbolBuff[i] = '\0';
+    for (char & i : _currentSymbolBuff) {
+        i = '\0';
     }
     _currentSymbolIndex = 0;
 }
 
 void Morseduino::Decoder::_printChar(char morseStr[]) {
-    for (int i = 0; i < ArraySize(morseMappings); i++) {
+    for (uint8_t i = 0; i < ArraySize(morseMappings); i++) {
         MorseMapping mm;
         PROGMEM_readAnything(&morseMappings[i], mm);
         if (strcmp(morseStr, mm.morseSeq) == 0) {

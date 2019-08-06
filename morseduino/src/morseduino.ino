@@ -48,9 +48,8 @@ Morseduino::Display display(128, 64);
 Morseduino::Decoder decoder(&display, KEY_PIN, TONE_PIN);
 Morseduino::Encoder encoder(TONE_PIN);
 
-
-int toneHz = 1850;      // music tone/pitch in Hertz
-byte dotLen;     // length of the morse code 'dot'
+uint16_t toneHz = 1850;      // music tone/pitch in Hertz
+uint8_t dotLen;     // length of the morse code 'dot'
 
 OpMode currentOpMode = invalid;
 
@@ -65,7 +64,7 @@ void setToneDefaults();
 
 void configureTone();
 
-byte getWpm(int);
+uint8_t getWpm(uint8_t dotLen);
 
 void checkRotary();
 
@@ -125,17 +124,17 @@ void loop() {
 #define MODE_WPM 11
 #define MODE_TONE 15
 
-byte rotaryMode = MODE_WPM;
+uint8_t rotaryMode = MODE_WPM;
 
 void checkRotary() {
     // 0 = not pushed, 1 = pushed, 2 = long pushed
-    byte push = rotary.pushType(
-            700); // number of milliseconds button has to be pushed for it to be considered a long push.
+    uint8_t push = rotary.pushType(700);
     if (push == 1 && !showHome) { // pushed while home screen is not shown
         if (rotaryMode == MODE_WPM) {
             rotaryMode = MODE_TONE;
             configureTone();
         } else if (rotaryMode == MODE_TONE) {
+            display.clear();
             rotaryMode = MODE_WPM;
             configureWpm();
         }
@@ -154,7 +153,7 @@ void checkRotary() {
     if (showHome) return; // Rotation is not valid when the home screen is shown
 
     // 0 = not turning, 1 = CW, 2 = CCW
-    byte rotated = rotary.rotate();
+    uint8_t rotated = rotary.rotate();
     if (rotated == 1) { // CW
         if (rotaryMode == MODE_WPM) {
             dotLen -= dotLen / 20;
@@ -178,7 +177,7 @@ void checkRotary() {
     }
 }
 
-byte getWpm(int _dotLen) {
+uint8_t getWpm(uint8_t _dotLen) {
     return round((float) 1000 / _dotLen);
 }
 

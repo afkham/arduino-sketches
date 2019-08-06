@@ -27,25 +27,27 @@
 namespace Morseduino {
     class Display {
     public:
-        Display(byte width, byte height);
+        Display(uint8_t width, uint8_t height);
 
         ~Display();
 
         bool init();
 
-        void showHomeScreen(const byte wpm, const unsigned int toneHz, const OpMode opMode);
+        void showHomeScreen(uint8_t wpm, uint16_t toneHz, OpMode opMode);
 
-        void showProgress(const char *text, const int val, const int maxVal);
+        void showProgress(const char *text, uint16_t val, uint16_t maxVal);
 
-        void showText(const String text);
+        void showText(const String& text);
+
+        void clear();
 
     private:
         Adafruit_SSD1306 *_ssd1306Display;
 
         void _printHeader();
 
-        byte _txtCursorCol = 0;
-        byte _txtCursorRow = 0;
+        uint8_t _currentX = 0;
+        uint8_t _currentY = 0;
         const char _header[11] = "Morseduino";
         const char _wpmText[6] = "WPM  ";
         const char _toneText[6] = "Tone ";

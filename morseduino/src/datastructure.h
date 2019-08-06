@@ -31,13 +31,19 @@
     4. The space between letters is 3 time units.
     5. The space between words is 7 time units.
 */
+#define WPM_DECLARATIONS \
+    uint8_t _dotLen = 0;   \
+    uint16_t _dashLen = 0;  \
+    uint8_t _symbolSpacing = 0;  \
+    uint16_t _charSpacing = 0; \
+    uint16_t _wordSpacing = 0; \
+
 #define WPM_RULES \
     _dotLen = dotLen; \
     _dashLen = dotLen * 3; \
     _symbolSpacing = dotLen; \
     _charSpacing = dotLen * 3; \
     _wordSpacing = dotLen * 4; \
-
 
 /*
     The following template is used for reading from PROGMEM
@@ -63,7 +69,7 @@ struct MorseMapping {
 };
 
 // Morse Alphabet
-const MorseMapping morseMappings[47] PROGMEM = {
+const PROGMEM MorseMapping morseMappings[47] = {
         {"A",     "._"},
         {"B",     "_..."},
         {"C",     "_._."},

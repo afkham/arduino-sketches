@@ -24,11 +24,11 @@
 namespace Morseduino {
     class Decoder {
     public:
-        Decoder(Display *display, byte keyPin, byte tonePin);
+        Decoder(Display *display, uint8_t keyPin, uint8_t tonePin);
 
-        void setDotLength(byte dotLen);
+        void setDotLength(uint8_t dotLen);
 
-        void setTone(int toneHz);
+        void setTone(uint16_t toneHz);
 
         void decode();
 
@@ -36,37 +36,33 @@ namespace Morseduino {
 
     private:
         Display *_display;
-        byte _keyPin;  // Morse key pin
-        byte _tonePin; // Pin where tone is played
-        int _toneHz; // Tone to play
+        uint8_t _keyPin = 0;  // Morse key pin
+        uint8_t _tonePin = 0; // Pin where tone is played
+        uint16_t _toneHz = 0; // Tone to play
 
-        byte _dotLen;     // length of the morse code 'dot'
-        int _dashLen;    // length of the morse code 'dash'
-        int _symbolSpacing; // length of the pause between elements of a character
-        int _charSpacing; // length of the spaces between characters
-        int _wordSpacing; // length of the pause between words
+        WPM_DECLARATIONS
 
         // The time at which a dot or dash started. This is used for identifying dots and dashes
-        int _symbolStartedAt = -1;
+        uint64_t _symbolStartedAt = 0;
 
         // The time at which the last dot or dash was received. This is used to identify character boundaries.
-        int _lastSymbolReceivedAt = -1;
+        uint64_t _lastSymbolReceivedAt = 0;
 
         // The time at which the last character was received. This is used for identifying word boundaries.
-        int _lastCharReceivedAt = -1;
+        uint64_t _lastCharReceivedAt = 0;
 
         // Holds the currently active symbol (dots and dashes) buffer.
         // This will be used later for identifying the character from the dots and dashes.
-        static const byte MAX_SYMBOLS = 10;
+        static const uint8_t MAX_SYMBOLS = 10;
         char _currentSymbolBuff[MAX_SYMBOLS]; // Maximum possible symbols in Morse code is 10
-        byte _currentSymbolIndex = 0; // index to the currentSymbolBuff
+        uint8_t _currentSymbolIndex = 0; // index to the currentSymbolBuff
 
         void _printChar(char morseStr[]);
 
         void _resetCurrentSymbolBuff();
 
         unsigned long _debounceTime;
-        byte _debounceDelay = 10;
+        uint8_t _debounceDelay = 10;
     };
 };
 
