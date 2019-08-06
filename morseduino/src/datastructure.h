@@ -38,43 +38,85 @@
     _charSpacing = dotLen * 3; \
     _wordSpacing = dotLen * 4; \
 
+
 /*
     The following template is used for reading from PROGMEM
     See: https://arduino.stackexchange.com/questions/13545/using-progmem-to-store-array-of-structs
 */
-template <typename T> void PROGMEM_readAnything (const T * sce, T& dest) {
-  memcpy_P (&dest, sce, sizeof (T));
+template<typename T>
+void PROGMEM_readAnything(const T *sce, T &dest) {
+    memcpy_P(&dest, sce, sizeof(T));
 }
 
 /*
    Number of items in an array
 */
-template< typename T, size_t N > size_t ArraySize (T (&) [N]) {
-  return N;
+template<typename T, size_t N>
+size_t ArraySize(T (&)[N]) {
+    return N;
 }
 
 // Character to Morse code mapping
 struct MorseMapping {
-  char ch[6];
-  char morseSeq[10];
+    char ch[6];
+    char morseSeq[10];
 };
 
 // Morse Alphabet
 const MorseMapping morseMappings[47] PROGMEM = {
-  {"A", "._"}, {"B", "_..."}, {"C", "_._."}, {"D", "_.."}, {"E", "."}, {"F", ".._."}, {"G", "__."},
-  {"H", "...."}, {"I", ".."}, {"J", ".___"}, {"K", "_._"}, {"L", "._.."}, {"M", "__"}, {"N", "_."},
-  {"O", "___"}, {"P", ".__."}, {"Q", "__._"}, {"R", "._."}, {"S", "..."}, {"T", "_"}, {"U", ".._"},
-  {"V", "..._"}, {"W", ".__"}, {"X", "_.._"}, {"Y", "_.__"}, {"Z", "__.."},
-  {"1", ".____"}, {"2", "..___"}, {"3", "...__"}, {"4", "...._"}, {"5", "....."}, {"6", "_...."},
-  {"7", "__..."}, {"8", "___.."}, {"9", "____."}, {"0", "_____"},
-  {".", "._._._"}, {",", "__..__"}, {"?", "..__.."}, {"=", "_..._"}, {"+", "._._."}, {"-", "_...._"},
-  {"<SOS>", "...___..."}, {"<KA>", "_._._"}, {"<AS>", "._..."}, {"<AR>", "._._."}, {"<SK>", "..._._"},
+        {"A",     "._"},
+        {"B",     "_..."},
+        {"C",     "_._."},
+        {"D",     "_.."},
+        {"E",     "."},
+        {"F",     ".._."},
+        {"G",     "__."},
+        {"H",     "...."},
+        {"I",     ".."},
+        {"J",     ".___"},
+        {"K",     "_._"},
+        {"L",     "._.."},
+        {"M",     "__"},
+        {"N",     "_."},
+        {"O",     "___"},
+        {"P",     ".__."},
+        {"Q",     "__._"},
+        {"R",     "._."},
+        {"S",     "..."},
+        {"T",     "_"},
+        {"U",     ".._"},
+        {"V",     "..._"},
+        {"W",     ".__"},
+        {"X",     "_.._"},
+        {"Y",     "_.__"},
+        {"Z",     "__.."},
+        {"1",     ".____"},
+        {"2",     "..___"},
+        {"3",     "...__"},
+        {"4",     "...._"},
+        {"5",     "....."},
+        {"6",     "_...."},
+        {"7",     "__..."},
+        {"8",     "___.."},
+        {"9",     "____."},
+        {"0",     "_____"},
+        {".",     "._._._"},
+        {",",     "__..__"},
+        {"?",     "..__.."},
+        {"=",     "_..._"},
+        {"+",     "._._."},
+        {"-",     "_...._"},
+        {"<SOS>", "...___..."},
+        {"<KA>",  "_._._"},
+        {"<AS>",  "._..."},
+        {"<AR>",  "._._."},
+        {"<SK>",  "..._._"},
 };
 
 // --------------- Modes of operation -------------------------
 enum OpMode {
-  invalid,
-  dec, // Decoder mode of operation
-  enc // Encoder mode of operation
+    invalid,
+    dec, // Decoder mode of operation
+    enc // Encoder mode of operation
 };
 #endif

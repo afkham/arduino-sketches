@@ -21,30 +21,38 @@
 #include <Arduino.h>
 
 namespace Morseduino {
-class Encoder {
-  public:
-    Encoder(byte tonePin);
-    void setDotLength(byte dotLen);
-    void setTone(int toneHz);
-    void encode();
+    class Encoder {
+    public:
+        Encoder(byte tonePin);
 
-  private:
-    byte _tonePin; // Pin where tone is played
-    int _toneHz; // Tone to play
-    
-    byte _dotLen;     // length of the morse code 'dot'
-    int _dashLen;    // length of the morse code 'dash'
-    int _symbolSpacing; // length of the pause between elements of a character
-    int _charSpacing; // length of the spaces between characters
-    int _wordSpacing; // length of the pause between words
+        void setDotLength(byte dotLen);
 
-    void _di();
-    void _dah();
-    void _pause(int delayTime);
-    byte _lengthof(char const str[]);
-    void _playMorse(char normalChar[]);
-    void _playMorseSequence(char morseSequence[]);
-};
+        void setTone(int toneHz);
+
+        void encode();
+
+    private:
+        byte _tonePin; // Pin where tone is played
+        int _toneHz; // Tone to play
+
+        byte _dotLen;     // length of the morse code 'dot'
+        int _dashLen;    // length of the morse code 'dash'
+        int _symbolSpacing; // length of the pause between elements of a character
+        int _charSpacing; // length of the spaces between characters
+        int _wordSpacing; // length of the pause between words
+
+        void _di();
+
+        void _dah();
+
+        void _pause(int delayTime);
+
+        byte _lengthof(char const str[]);
+
+        void _playMorse(char normalChar[]);
+
+        void _playMorseSequence(char morseSequence[]);
+    };
 };
 
 #endif

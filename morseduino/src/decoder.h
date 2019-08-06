@@ -22,47 +22,52 @@
 #include "display.h"
 
 namespace Morseduino {
-class Decoder {
-  public:
-    Decoder(Display* display, byte keyPin, byte tonePin);
-    void setDotLength(byte dotLen);
-    void setTone(int toneHz);
-    void decode();
-    ~Decoder();
+    class Decoder {
+    public:
+        Decoder(Display *display, byte keyPin, byte tonePin);
 
-  private:
-    Display* _display;
-    byte _keyPin;  // Morse key pin
-    byte _tonePin; // Pin where tone is played
-    int _toneHz; // Tone to play
+        void setDotLength(byte dotLen);
 
-    byte _dotLen;     // length of the morse code 'dot'
-    int _dashLen;    // length of the morse code 'dash'
-    int _symbolSpacing; // length of the pause between elements of a character
-    int _charSpacing; // length of the spaces between characters
-    int _wordSpacing; // length of the pause between words
+        void setTone(int toneHz);
 
-    // The time at which a dot or dash started. This is used for identifying dots and dashes
-    int _symbolStartedAt = -1;
+        void decode();
 
-    // The time at which the last dot or dash was received. This is used to identify character boundaries.
-    int _lastSymbolReceivedAt = -1;
+        ~Decoder();
 
-    // The time at which the last character was received. This is used for identifying word boundaries.
-    int _lastCharReceivedAt = -1;
+    private:
+        Display *_display;
+        byte _keyPin;  // Morse key pin
+        byte _tonePin; // Pin where tone is played
+        int _toneHz; // Tone to play
 
-    // Holds the currently active symbol (dots and dashes) buffer.
-    // This will be used later for identifying the character from the dots and dashes.
-    static const byte MAX_SYMBOLS = 10;
-    char _currentSymbolBuff[MAX_SYMBOLS]; // Maximum possible symbols in Morse code is 10
-    byte _currentSymbolIndex = 0; // index to the currentSymbolBuff
+        byte _dotLen;     // length of the morse code 'dot'
+        int _dashLen;    // length of the morse code 'dash'
+        int _symbolSpacing; // length of the pause between elements of a character
+        int _charSpacing; // length of the spaces between characters
+        int _wordSpacing; // length of the pause between words
 
-    void _printChar(char morseStr[]);
-    void _resetCurrentSymbolBuff();
+        // The time at which a dot or dash started. This is used for identifying dots and dashes
+        int _symbolStartedAt = -1;
 
-    unsigned long _debounceTime;
-    byte _debounceDelay = 10;
-};
+        // The time at which the last dot or dash was received. This is used to identify character boundaries.
+        int _lastSymbolReceivedAt = -1;
+
+        // The time at which the last character was received. This is used for identifying word boundaries.
+        int _lastCharReceivedAt = -1;
+
+        // Holds the currently active symbol (dots and dashes) buffer.
+        // This will be used later for identifying the character from the dots and dashes.
+        static const byte MAX_SYMBOLS = 10;
+        char _currentSymbolBuff[MAX_SYMBOLS]; // Maximum possible symbols in Morse code is 10
+        byte _currentSymbolIndex = 0; // index to the currentSymbolBuff
+
+        void _printChar(char morseStr[]);
+
+        void _resetCurrentSymbolBuff();
+
+        unsigned long _debounceTime;
+        byte _debounceDelay = 10;
+    };
 };
 
 #endif

@@ -58,63 +58,68 @@ bool showHome = true;
 // ------------------------------------------------------------
 
 void setWpmDefaults();
+
 void configureWpm();
+
 void setToneDefaults();
+
 void configureTone();
+
 byte getWpm(int);
+
 void checkRotary();
 
 /**
    SETUP
 */
 void setup() {
-  pinMode(KEY_PIN, INPUT);
-  pinMode(MODE_SELECT_PIN, INPUT);
-  pinMode(SPEED_ENC_PIN_A, INPUT);
-  pinMode(SPEED_ENC_PIN_B, INPUT);
-  #ifdef ENABLE_SERIAL
-  Serial.begin(9600);
-  #endif
+    pinMode(KEY_PIN, INPUT);
+    pinMode(MODE_SELECT_PIN, INPUT);
+    pinMode(SPEED_ENC_PIN_A, INPUT);
+    pinMode(SPEED_ENC_PIN_B, INPUT);
+#ifdef ENABLE_SERIAL
+    Serial.begin(9600);
+#endif
 
-  if (!display.init()) {
-    #ifdef ENABLE_SERIAL
-    Serial.println(F("SSD1306 allocation failed"));
-    #endif
-    for (;;); // Don't proceed, loop forever
-  }
-  dotLen = EEPROM.read(DOT_LEN_ADDR);
-  EEPROM.get(TONE_HZ_ADDR, toneHz);
+    if (!display.init()) {
+#ifdef ENABLE_SERIAL
+        Serial.println(F("SSD1306 allocation failed"));
+#endif
+        for (;;); // Don't proceed, loop forever
+    }
+    dotLen = EEPROM.read(DOT_LEN_ADDR);
+    EEPROM.get(TONE_HZ_ADDR, toneHz);
 
-  rotary.setDebounceDelay(0);
-  rotary.setErrorDelay(0);
+    rotary.setDebounceDelay(0);
+    rotary.setErrorDelay(0);
 
-  setWpmDefaults();
-  configureWpm();
+    setWpmDefaults();
+    configureWpm();
 
-  setToneDefaults();
-  configureTone();
+    setToneDefaults();
+    configureTone();
 }
 
 /**
    LOOP
 */
 void loop() {
-  if (digitalRead(MODE_SELECT_PIN)) {
-    if (currentOpMode == invalid || currentOpMode == dec) { // If it has toggled
-      currentOpMode = enc;
-      display.showHomeScreen(getWpm(dotLen), toneHz, currentOpMode);
-      showHome = true;
+    if (digitalRead(MODE_SELECT_PIN)) {
+        if (currentOpMode == invalid || currentOpMode == dec) { // If it has toggled
+            currentOpMode = enc;
+            display.showHomeScreen(getWpm(dotLen), toneHz, currentOpMode);
+            showHome = true;
+        }
+        encoder.encode();
+    } else {
+        if (currentOpMode == invalid || currentOpMode == enc) { // If it has toggled
+            currentOpMode = dec;
+            display.showHomeScreen(getWpm(dotLen), toneHz, currentOpMode);
+            showHome = true;
+        }
+        decoder.decode();
     }
-    encoder.encode();
-  } else {
-    if (currentOpMode == invalid || currentOpMode == enc) { // If it has toggled
-      currentOpMode = dec;
-      display.showHomeScreen(getWpm(dotLen), toneHz, currentOpMode);
-      showHome = true;
-    }
-    decoder.decode();
-  }
-  checkRotary();
+    checkRotary();
 }
 
 #define MODE_WPM 11
@@ -123,79 +128,82 @@ void loop() {
 byte rotaryMode = MODE_WPM;
 
 void checkRotary() {
-  // 0 = not pushed, 1 = pushed, 2 = long pushed
-  byte push = rotary.pushType(700); // number of milliseconds button has to be pushed for it to be considered a long push.
-  if ( push == 1  && !showHome) { // pushed while home screen is not shown
-    if (rotaryMode == MODE_WPM) {
-      rotaryMode = MODE_TONE;
-      configureTone();
-    } else if (rotaryMode == MODE_TONE) {
-      rotaryMode = MODE_WPM;
-      configureWpm();
+    // 0 = not pushed, 1 = pushed, 2 = long pushed
+    byte push = rotary.pushType(
+            700); // number of milliseconds button has to be pushed for it to be considered a long push.
+    if (push == 1 && !showHome) { // pushed while home screen is not shown
+        if (rotaryMode == MODE_WPM) {
+            rotaryMode = MODE_TONE;
+            configureTone();
+        } else if (rotaryMode == MODE_TONE) {
+            rotaryMode = MODE_WPM;
+            configureWpm();
+        }
+    } else if (push == 2) { // long pushed
+        if (!showHome) {
+            display.showHomeScreen(getWpm(dotLen), toneHz, currentOpMode);
+            showHome = true;
+            return; // No need to check rotation once you show home screen
+        } else {
+            showHome = false;
+            rotaryMode = MODE_WPM;
+            configureWpm();
+        }
     }
-  } else if ( push == 2 ) { // long pushed
-    if (!showHome) {
-      display.showHomeScreen(getWpm(dotLen), toneHz, currentOpMode);
-      showHome = true;
-      return; // No need to check rotation once you show home screen
-    } else {
-      showHome = false;
-      rotaryMode = MODE_WPM;
-      configureWpm();
-    }
-  }
 
-  if(showHome) return; // Rotation is not valid when the home screen is shown
+    if (showHome) return; // Rotation is not valid when the home screen is shown
 
-  // 0 = not turning, 1 = CW, 2 = CCW
-  byte rotated = rotary.rotate();
-  if (rotated == 1 ) { // CW
-    if (rotaryMode == MODE_WPM) {
-      dotLen -= dotLen / 20;
-      setWpmDefaults();
-      configureWpm();
-    } else if (rotaryMode == MODE_TONE) {
-      toneHz += 50;
-      setToneDefaults();
-      configureTone();
+    // 0 = not turning, 1 = CW, 2 = CCW
+    byte rotated = rotary.rotate();
+    if (rotated == 1) { // CW
+        if (rotaryMode == MODE_WPM) {
+            dotLen -= dotLen / 20;
+            setWpmDefaults();
+            configureWpm();
+        } else if (rotaryMode == MODE_TONE) {
+            toneHz += 50;
+            setToneDefaults();
+            configureTone();
+        }
+    } else if (rotated == 2) { // CCW
+        if (rotaryMode == MODE_WPM) {
+            dotLen += dotLen / 20;
+            setWpmDefaults();
+            configureWpm();
+        } else if (rotaryMode == MODE_TONE) {
+            toneHz -= 50;
+            setToneDefaults();
+            configureTone();
+        }
     }
-  } else if ( rotated == 2 ) { // CCW
-    if (rotaryMode == MODE_WPM) {
-      dotLen += dotLen / 20;
-      setWpmDefaults();
-      configureWpm();
-    } else if (rotaryMode == MODE_TONE) {
-      toneHz -= 50;
-      setToneDefaults();
-      configureTone();
-    }
-  }
 }
 
 byte getWpm(int _dotLen) {
-  return round((float) 1000 / _dotLen);
+    return round((float) 1000 / _dotLen);
 }
 
 void setWpmDefaults() {
-  if (dotLen >= MAX_DOT_LEN) dotLen = MAX_DOT_LEN; else if (dotLen <= MIN_DOT_LEN) dotLen = MIN_DOT_LEN;
+    if (dotLen >= MAX_DOT_LEN) dotLen = MAX_DOT_LEN; else if (dotLen <= MIN_DOT_LEN) dotLen = MIN_DOT_LEN;
 }
 
-const char* WPM_TXT = "WPM";
+const char *WPM_TXT = "WPM";
+
 void configureWpm() {
-  EEPROM.write(DOT_LEN_ADDR, dotLen);
-  decoder.setDotLength(dotLen);
-  encoder.setDotLength(dotLen);
-  display.showProgress(WPM_TXT, getWpm(dotLen), getWpm(MIN_DOT_LEN)); // Max WPM
+    EEPROM.write(DOT_LEN_ADDR, dotLen);
+    decoder.setDotLength(dotLen);
+    encoder.setDotLength(dotLen);
+    display.showProgress(WPM_TXT, getWpm(dotLen), getWpm(MIN_DOT_LEN)); // Max WPM
 }
 
-const char* TONE_TXT = "Tone(Hz)";
+const char *TONE_TXT = "Tone(Hz)";
+
 void configureTone() {
-  EEPROM.put(TONE_HZ_ADDR, toneHz);
-  decoder.setTone(toneHz);
-  encoder.setTone(toneHz);
-  display.showProgress(TONE_TXT, toneHz, MAX_TONE);
+    EEPROM.put(TONE_HZ_ADDR, toneHz);
+    decoder.setTone(toneHz);
+    encoder.setTone(toneHz);
+    display.showProgress(TONE_TXT, toneHz, MAX_TONE);
 }
 
 void setToneDefaults() {
-  if (toneHz >= MAX_TONE) toneHz = MAX_TONE; else if (toneHz <= MIN_TONE) toneHz = MIN_TONE;
+    if (toneHz >= MAX_TONE) toneHz = MAX_TONE; else if (toneHz <= MIN_TONE) toneHz = MIN_TONE;
 }

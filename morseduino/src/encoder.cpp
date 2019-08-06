@@ -21,104 +21,104 @@
 
 #include <Arduino.h>
 
-Morseduino::Encoder::Encoder(byte tonePin): _tonePin(tonePin) {}
+Morseduino::Encoder::Encoder(byte tonePin) : _tonePin(tonePin) {}
 
 void Morseduino::Encoder::setDotLength(byte dotLen) {
-  WPM_RULES
+    WPM_RULES
 }
 
 void Morseduino::Encoder::setTone(int toneHz) {
-  _toneHz = toneHz;
+    _toneHz = toneHz;
 }
 
 void Morseduino::Encoder::encode() {
-  if (Serial.available() > 0) {
-    String strFromSerial = Serial.readString();
-    int len = strFromSerial.length();
-    char strToEncode[len];
-    strFromSerial.toCharArray(strToEncode, len);
-    int i = 0;
-    while (i < len) {
-      if (strToEncode[i] == '<') { // Handle joint characters
-        char jointChar[6];
-        int k = 0;
-        bool closingBracketFound = false;
-        for(int j = i; j < len; j++) {
-          jointChar[k] = strToEncode[j];
-          i = j;
-          if(strToEncode[j] == '>') {
-            closingBracketFound = true;
-            jointChar[k + 1] = '\0';
-            Serial.print(jointChar);
-            _playMorse(jointChar);
-            i++;
-            break;
-          }
-          //TODO: BUG here
-          // if(!closingBracketFound) {
-          //   Serial.println(F("****** NO closing brackets. INVALID INPUT ******"));
-          //   return;
-          // }
-          k++;
+    if (Serial.available() > 0) {
+        String strFromSerial = Serial.readString();
+        int len = strFromSerial.length();
+        char strToEncode[len];
+        strFromSerial.toCharArray(strToEncode, len);
+        int i = 0;
+        while (i < len) {
+            if (strToEncode[i] == '<') { // Handle joint characters
+                char jointChar[6];
+                int k = 0;
+                bool closingBracketFound = false;
+                for (int j = i; j < len; j++) {
+                    jointChar[k] = strToEncode[j];
+                    i = j;
+                    if (strToEncode[j] == '>') {
+                        closingBracketFound = true;
+                        jointChar[k + 1] = '\0';
+                        Serial.print(jointChar);
+                        _playMorse(jointChar);
+                        i++;
+                        break;
+                    }
+                    //TODO: BUG here
+                    // if(!closingBracketFound) {
+                    //   Serial.println(F("****** NO closing brackets. INVALID INPUT ******"));
+                    //   return;
+                    // }
+                    k++;
+                }
+            } else {
+                if (strToEncode[i] == ' ') {
+                    delay(_wordSpacing);
+                } else if (strToEncode[i] != '\0') {
+                    char ch[2] = {strToEncode[i], '\0'};
+                    _playMorse(ch);
+                    delay(_charSpacing);
+                }
+                Serial.print(strToEncode[i]);
+                if (strToEncode[i] == '=') {
+                    Serial.println();
+                }
+                i++;
+            }
         }
-      } else {
-        if (strToEncode[i] == ' ') {
-          delay(_wordSpacing);
-        } else if(strToEncode[i] != '\0') {
-          char ch[2] = {strToEncode[i], '\0'};
-          _playMorse(ch);
-          delay(_charSpacing);
-        }
-        Serial.print(strToEncode[i]);
-        if (strToEncode[i] == '=') {
-          Serial.println();
-        }
-        i++;
-      }
+        Serial.println();
     }
-    Serial.println();
-  }
 }
 
 void Morseduino::Encoder::_playMorse(char normalChar[]) {
-  for (byte i = 0; i < ArraySize(morseMappings); i++) {
-    MorseMapping mm;
-    PROGMEM_readAnything (&morseMappings[i], mm);
-    if (strcasecmp(normalChar, mm.ch) == 0)  {
-      _playMorseSequence(mm.morseSeq);
-      return;
+    for (byte i = 0; i < ArraySize(morseMappings); i++) {
+        MorseMapping mm;
+        PROGMEM_readAnything(&morseMappings[i], mm);
+        if (strcasecmp(normalChar, mm.ch) == 0) {
+            _playMorseSequence(mm.morseSeq);
+            return;
+        }
     }
-  }
-  Serial.println(F("****** INVALID INPUT ******"));
+    Serial.println(F("****** INVALID INPUT ******"));
 }
 
 void Morseduino::Encoder::_playMorseSequence(char morseSeq[]) {
-  for (byte i = 0; i < strlen(morseSeq); i++) {
-    if (morseSeq[i] == '.') {
-      _di();
-    } else if (morseSeq[i] == '_') {
-      _dah();
+    for (byte i = 0; i < strlen(morseSeq); i++) {
+        if (morseSeq[i] == '.') {
+            _di();
+        } else if (morseSeq[i] == '_') {
+            _dah();
+        }
     }
-  }
 }
 
 void Morseduino::Encoder::_pause(int delayTime) {
-  noTone(_tonePin);
-  delay(delayTime);
+    noTone(_tonePin);
+    delay(delayTime);
 }
 
 void Morseduino::Encoder::_di() {
-  #ifndef TONE_OFF
-  tone(_tonePin, _toneHz, _dotLen);
-  #endif
-  delay(_dotLen);
-  _pause(_symbolSpacing);
+#ifndef TONE_OFF
+    tone(_tonePin, _toneHz, _dotLen);
+#endif
+    delay(_dotLen);
+    _pause(_symbolSpacing);
 }
 
 void Morseduino::Encoder::_dah() {
-  #ifndef TONE_OFF
-  tone(_tonePin, _toneHz, _dashLen);  // start playing a tone
-  #endif
-  delay(_dashLen);               // hold in this position
-  _pause(_symbolSpacing);
+#ifndef TONE_OFF
+    tone(_tonePin, _toneHz, _dashLen);  // start playing a tone
+#endif
+    delay(_dashLen);               // hold in this position
+    _pause(_symbolSpacing);
 }

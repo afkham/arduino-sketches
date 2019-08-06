@@ -25,26 +25,34 @@
 #include "datastructure.h"
 
 namespace Morseduino {
-class Display {
-  public:
-    Display(byte width, byte height);
-    ~Display();
-    bool init();
-    void showHomeScreen(const byte wpm, const unsigned int toneHz, const OpMode opMode);
-    void showProgress(const char* text, const int val, const int maxVal);
-    void showText(const String text);
-  private:
-    Adafruit_SSD1306* _ssd1306Display;
-    void _printHeader();
-    byte _txtCursorCol = 0;
-    byte _txtCursorRow = 0;
-    const char _header[11] = "Morseduino";
-    const char _wpmText[6] =  "WPM  ";
-    const char _toneText[6] = "Tone ";
-    const char _modeText[6] = "Mode ";
-    const char _decModeText[4] = "DEC";
-    const char _encModeText[4] = "ENC";
-};
+    class Display {
+    public:
+        Display(byte width, byte height);
+
+        ~Display();
+
+        bool init();
+
+        void showHomeScreen(const byte wpm, const unsigned int toneHz, const OpMode opMode);
+
+        void showProgress(const char *text, const int val, const int maxVal);
+
+        void showText(const String text);
+
+    private:
+        Adafruit_SSD1306 *_ssd1306Display;
+
+        void _printHeader();
+
+        byte _txtCursorCol = 0;
+        byte _txtCursorRow = 0;
+        const char _header[11] = "Morseduino";
+        const char _wpmText[6] = "WPM  ";
+        const char _toneText[6] = "Tone ";
+        const char _modeText[6] = "Mode ";
+        const char _decModeText[4] = "DEC";
+        const char _encModeText[4] = "ENC";
+    };
 };
 
 #endif

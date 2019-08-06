@@ -30,20 +30,17 @@
 #include "Arduino.h"
 #include "rotary.h"
 
-Morseduino::SimpleRotary::SimpleRotary(byte pinA, byte pinB, byte pinS)
-{
-  _pinA = pinA;
-  _pinB = pinB;
-  _pinS = pinS;
-  _currentTime = millis();
-  _debounceRTime = _currentTime;
-  _debounceSTime = _currentTime;
-  _errorTime = _currentTime;
+Morseduino::SimpleRotary::SimpleRotary(byte pinA, byte pinB, byte pinS) {
+    _pinA = pinA;
+    _pinB = pinB;
+    _pinS = pinS;
+    _currentTime = millis();
+    _debounceRTime = _currentTime;
+    _debounceSTime = _currentTime;
+    _errorTime = _currentTime;
 
-  _setInputPins();
+    _setInputPins();
 }
-
-
 
 
 /**
@@ -54,10 +51,9 @@ Morseduino::SimpleRotary::SimpleRotary(byte pinA, byte pinB, byte pinS)
 
 	@since v0.1;
 **/
-void Morseduino::SimpleRotary::setTrigger(byte i)
-{
-  _trigger = i;
-  _setInputPins();
+void Morseduino::SimpleRotary::setTrigger(byte i) {
+    _trigger = i;
+    _setInputPins();
 }
 
 
@@ -73,9 +69,8 @@ void Morseduino::SimpleRotary::setTrigger(byte i)
 
 	@since v0.1;
 **/
-void Morseduino::SimpleRotary::setDebounceDelay(int i)
-{
-  _debounceRDelay = i;
+void Morseduino::SimpleRotary::setDebounceDelay(int i) {
+    _debounceRDelay = i;
 }
 
 
@@ -93,9 +88,8 @@ void Morseduino::SimpleRotary::setDebounceDelay(int i)
 
 	@since v0.1;
 **/
-void Morseduino::SimpleRotary::setErrorDelay(int i)
-{
-  _errorDelay = i;
+void Morseduino::SimpleRotary::setErrorDelay(int i) {
+    _errorDelay = i;
 }
 
 
@@ -109,38 +103,37 @@ void Morseduino::SimpleRotary::setErrorDelay(int i)
 
 	@since v0.1;
 **/
-byte Morseduino::SimpleRotary::rotate()
-{
-  byte _dir = 0x00;
-  _updateTime();
+byte Morseduino::SimpleRotary::rotate() {
+    byte _dir = 0x00;
+    _updateTime();
 
-  if ( _currentTime >= ( _debounceRTime + _debounceRDelay ) ) {
+    if (_currentTime >= (_debounceRTime + _debounceRDelay)) {
 
-    _statusA = ( digitalRead(_pinA) == _trigger ? true : false);
-    _statusB = ( digitalRead(_pinB) == _trigger ? true : false);
+        _statusA = (digitalRead(_pinA) == _trigger ? true : false);
+        _statusB = (digitalRead(_pinB) == _trigger ? true : false);
 
-    if ( !_statusA && _statusA_prev ) {
+        if (!_statusA && _statusA_prev) {
 
-      if ( _statusB != _statusA ) {
-        _dir = 0x01;
-      } else {
-        _dir = 0x02;
-      }
+            if (_statusB != _statusA) {
+                _dir = 0x01;
+            } else {
+                _dir = 0x02;
+            }
 
-      if ( _currentTime < (_errorTime + _errorDelay) ) {
-        _dir = _errorLast;
-      } else {
-        _errorLast = _dir;
-      }
+            if (_currentTime < (_errorTime + _errorDelay)) {
+                _dir = _errorLast;
+            } else {
+                _errorLast = _dir;
+            }
 
-      _errorTime = _currentTime;
+            _errorTime = _currentTime;
 
+        }
+        _statusA_prev = _statusA;
+        _debounceRTime = _currentTime;
     }
-    _statusA_prev = _statusA;
-    _debounceRTime = _currentTime;
-  }
 
-  return _dir;
+    return _dir;
 
 }
 
@@ -158,21 +151,21 @@ byte Morseduino::SimpleRotary::rotate()
 	@return byte, value of turned knob.
 **/
 byte Morseduino::SimpleRotary::push() {
-  _updateTime();
-  byte val = 0x00;
+    _updateTime();
+    byte val = 0x00;
 
-  _statusS = ( digitalRead(_pinS) == _trigger ? true : false);
+    _statusS = (digitalRead(_pinS) == _trigger ? true : false);
 
-  if ( _currentTime >= _debounceSTime + _debounceSDelay) {
-    if ( !_statusS &&  _statusS_prev ) {
-      val = 0x01;
-      _pulse = false;
-      _pushTime = _currentTime;
+    if (_currentTime >= _debounceSTime + _debounceSDelay) {
+        if (!_statusS && _statusS_prev) {
+            val = 0x01;
+            _pulse = false;
+            _pushTime = _currentTime;
+        }
+        _statusS_prev = _statusS;
+        _debounceSTime = _currentTime;
     }
-    _statusS_prev = _statusS;
-    _debounceSTime = _currentTime;
-  }
-  return val;
+    return val;
 }
 
 
@@ -185,12 +178,12 @@ byte Morseduino::SimpleRotary::push() {
 	@return int, time in MS that the button has been held down.
 **/
 int Morseduino::SimpleRotary::pushTime() {
-  unsigned int t = 0;
-  byte s = push();
-  if ( !_statusS &&  !_statusS_prev ) {
-    t = _currentTime - _pushTime;
-  }
-  return t;
+    unsigned int t = 0;
+    byte s = push();
+    if (!_statusS && !_statusS_prev) {
+        t = _currentTime - _pushTime;
+    }
+    return t;
 }
 
 
@@ -211,8 +204,8 @@ int Morseduino::SimpleRotary::pushTime() {
 	@since v0.1;
 **/
 void Morseduino::SimpleRotary::resetPush() {
-  _updateTime();
-  _pushTime = _currentTime;
+    _updateTime();
+    _pushTime = _currentTime;
 }
 
 
@@ -236,14 +229,14 @@ void Morseduino::SimpleRotary::resetPush() {
 	@return byte
 **/
 byte Morseduino::SimpleRotary::pushLong(int i) {
-  unsigned int time = pushTime();
-  byte val = 0x00;
+    unsigned int time = pushTime();
+    byte val = 0x00;
 
-  if ( (_currentTime + time > _currentTime + i ) && !_pulse ) {
-    val = 0x01;
-    _pulse = true;
-  }
-  return val;
+    if ((_currentTime + time > _currentTime + i) && !_pulse) {
+        val = 0x01;
+        _pulse = true;
+    }
+    return val;
 }
 
 
@@ -266,41 +259,38 @@ byte Morseduino::SimpleRotary::pushLong(int i) {
 	@return byte
 **/
 byte Morseduino::SimpleRotary::pushType(int i = 1000) {
-  _updateTime();
-  _statusS = ( digitalRead(_pinS) == _trigger ) ? true : false;
-  byte val = 0x00;
+    _updateTime();
+    _statusS = (digitalRead(_pinS) == _trigger) ? true : false;
+    byte val = 0x00;
 
-  if ( _currentTime >= _debounceSTime + _debounceSDelay ) {
+    if (_currentTime >= _debounceSTime + _debounceSDelay) {
 
-    // Button has been pressed
-    if ( !_statusS && _statusS_prev ) {
-      _btnPressed = true;
-      _pushTime = _currentTime;
+        // Button has been pressed
+        if (!_statusS && _statusS_prev) {
+            _btnPressed = true;
+            _pushTime = _currentTime;
+        }
+
+        // Button has been released
+        if (_statusS && !_statusS_prev && _btnPressed) {
+            _btnPressed = false;
+            val = 0x01;
+        }
+        // Button is being held
+        if (!_statusS && !_statusS_prev && _btnPressed) {
+            if (_currentTime > _pushTime + i) {
+                _btnPressed = false;
+                val = 0x02;
+            }
+        }
+
+        _statusS_prev = _statusS;
+        _debounceSTime = _currentTime;
     }
 
-    // Button has been released
-    if ( _statusS && !_statusS_prev  && _btnPressed ) {
-      _btnPressed = false;
-      val = 0x01;
-    }
-    // Button is being held
-    if ( !_statusS && !_statusS_prev && _btnPressed) {
-      if ( _currentTime > _pushTime + i ) {
-        _btnPressed = false;
-        val = 0x02;
-      }
-    }
 
-    _statusS_prev = _statusS;
-    _debounceSTime = _currentTime;
-  }
-
-
-  return val;
+    return val;
 }
-
-
-
 
 
 /**
@@ -312,15 +302,15 @@ byte Morseduino::SimpleRotary::pushType(int i = 1000) {
 	@since v0.2;
 **/
 void Morseduino::SimpleRotary::_setInputPins() {
-  if ( _trigger == HIGH ) {
-    pinMode(_pinA, INPUT_PULLUP);
-    pinMode(_pinB, INPUT_PULLUP);
-    pinMode(_pinS, INPUT_PULLUP);
-  } else {
-    pinMode(_pinA, INPUT);
-    pinMode(_pinB, INPUT);
-    pinMode(_pinS, INPUT);
-  }
+    if (_trigger == HIGH) {
+        pinMode(_pinA, INPUT_PULLUP);
+        pinMode(_pinB, INPUT_PULLUP);
+        pinMode(_pinS, INPUT_PULLUP);
+    } else {
+        pinMode(_pinA, INPUT);
+        pinMode(_pinB, INPUT);
+        pinMode(_pinS, INPUT);
+    }
 }
 
 
@@ -330,7 +320,6 @@ void Morseduino::SimpleRotary::_setInputPins() {
 
 	@since v0.1;
 **/
-void Morseduino::SimpleRotary::_updateTime()
-{
-  _currentTime = millis();
+void Morseduino::SimpleRotary::_updateTime() {
+    _currentTime = millis();
 }
