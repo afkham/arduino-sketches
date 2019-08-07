@@ -20,7 +20,7 @@
 #define MorseduinoDataStructure_h
 
 #define ENABLE_SERIAL 1
-// #define TONE_OFF 1
+//#define TONE_OFF 1
 
 /*
     There are rules to help people distinguish dots from dashes in Morse code.
@@ -43,7 +43,7 @@
     _dashLen = dotLen * 3; \
     _symbolSpacing = dotLen; \
     _charSpacing = dotLen * 3; \
-    _wordSpacing = dotLen * 4; \
+    _wordSpacing = dotLen * 7; \
 
 /*
     The following template is used for reading from PROGMEM
@@ -125,4 +125,5 @@ enum OpMode {
     dec, // Decoder mode of operation
     enc // Encoder mode of operation
 };
+
 #endif
